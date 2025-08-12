@@ -4,7 +4,8 @@ const {
   approveLoan,
   repayLoan,
   getMyLoans,
-  getAllLoans
+  getAllLoans,
+  rejectLoan // New function import karein
 } = require('../controllers/loanController');
 const { protect, adminOnly } = require('../middleware/authMiddleware');
 
@@ -17,6 +18,7 @@ router.get('/myloans', protect, getMyLoans);
 
 // Admin routes
 router.patch('/:id/approve', protect, adminOnly, approveLoan);
+router.patch('/:id/reject', protect, adminOnly, rejectLoan); // New admin route
 router.get('/all', protect, adminOnly, getAllLoans);
 
 module.exports = router;

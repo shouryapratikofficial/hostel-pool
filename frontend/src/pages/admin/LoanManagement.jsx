@@ -27,17 +27,21 @@ export default function LoanManagement() {
   const handleApprove = async (id) => {
     try {
       await api.patch(`/loans/${id}/approve`);
-      fetchLoans(); // Refresh the list
+      fetchLoans();
     } catch (err) {
       setError(err.response?.data?.message || "Failed to approve loan.");
       console.error(err);
     }
   };
 
-  const handleReject = async (id) => {
-    // For now, you can just remove the loan from the list as a client-side mock
-    setLoans(loans.filter(loan => loan._id !== id));
-    console.log(`Loan ${id} rejected.`);
+  const handleReject = async (id) => { // Updated function
+    try {
+      await api.patch(`/loans/${id}/reject`);
+      fetchLoans();
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to reject loan.");
+      console.error(err);
+    }
   };
 
   const getStatusColor = (status) => {

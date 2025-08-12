@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   LineChart,
@@ -9,58 +9,79 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import api from "../../services/api";
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
 
-  const [stats] = useState({
-    totalAvailableBalance: 120000,
-    totalBalance: 150000,
-    blockedAmount: 30000,
-    profitPool: 5000,
+  const [stats, setStats] = useState({
+    totalAvailableBalance: 0,
+    totalBalance: 0,
+    blockedAmount: 0,
+    profitPool: 0,
+    totalUsers: 0,
+    totalLoans: 0,
   });
+  const [profitData, setProfitData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const data = [
-    { month: "Jan", profit: 2000 },
-    { month: "Feb", profit: 2500 },
-    { month: "Mar", profit: 1800 },
-    { month: "Apr", profit: 3000 },
-    { month: "May", profit: 2800 },
-    { month: "Jun", profit: 3500 },
-  ];
+  useEffect(() => {
+    const fetchAdminStats = async () => {
+      setLoading(true);
+      setError("");
+      try {
+        const { data } = await api.get("/users/admin/dashboard");
+        setStats(data);
+        setProfitData(data.profitTrend);
+      } catch (err) {
+        setError(err.response?.data?.message || "Failed to fetch admin dashboard stats.");
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAdminStats();
+  }, []);
 
   return (
     <div className="bg-gray-50 p-6">
       <h1 className="text-3xl font-bold mb-6">Admin Dashboard</h1>
+      {loading && <p>Loading...</p>}
+      {error && <p className="text-red-500">{error}</p>}
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <StatCard title="Total Available Balance" value={`₹${stats.totalAvailableBalance}`} />
-        <StatCard title="Total Balance" value={`₹${stats.totalBalance}`} />
-        <StatCard title="Blocked Amount" value={`₹${stats.blockedAmount}`} />
-        <StatCard title="Profit Pool" value={`₹${stats.profitPool}`} />
-      </div>
+      {!loading && !error && (
+        <>
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <StatCard title="Total Available Balance" value={`₹${stats.totalAvailableBalance}`} />
+            <StatCard title="Total Balance" value={`₹${stats.totalBalance}`} />
+            <StatCard title="Blocked Amount" value={`₹${stats.blockedAmount}`} />
+            <StatCard title="Profit Pool" value={`₹${stats.profitPool}`} />
+          </div>
 
-      {/* Chart */}
-      <div className="bg-white rounded-xl shadow p-6 mb-8">
-        <h2 className="text-xl font-semibold mb-4">Profit Trend</h2>
-        <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={data} margin={{ top: 5, right: 0, left: 10, bottom: 5 }}> {/* Margins adjusted */}
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="month" />
-            <YAxis width={60} /> {/* YAxis width reduced */}
-            <Tooltip />
-            <Line type="monotone" dataKey="profit" stroke="#4f46e5" strokeWidth={3} />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
+          {/* Chart */}
+          <div className="bg-white rounded-xl shadow p-6 mb-8">
+            <h2 className="text-xl font-semibold mb-4">Profit Trend</h2>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={profitData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis />
+                <Tooltip />
+                <Line type="monotone" dataKey="profit" stroke="#4f46e5" strokeWidth={3} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
 
-      {/* Quick Navigation Buttons */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-        <NavButton label="Manage Loans" onClick={() => navigate("/admin/loans")} />
-        <NavButton label="View Users" onClick={() => navigate("/admin/users")} />
-        <NavButton label="Profit Pool" onClick={() => navigate("/admin/profit")} />
-      </div>
+          {/* Quick Navigation Buttons */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            <NavButton label="Manage Loans" onClick={() => navigate("/admin/loans")} />
+            <NavButton label="View Users" onClick={() => navigate("/admin/users")} />
+            <NavButton label="Profit Pool" onClick={() => navigate("/admin/profit")} />
+          </div>
+        </>
+      )}
     </div>
   );
 }

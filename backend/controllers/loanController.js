@@ -65,6 +65,27 @@ exports.approveLoan = async (req, res) => {
   }
 };
 
+
+exports.rejectLoan = async (req, res) => {
+  try {
+    const loan = await Loan.findById(req.params.id);
+    if (!loan) {
+      return res.status(404).json({ message: 'Loan not found' });
+    }
+    if (loan.status !== 'pending') {
+      return res.status(400).json({ message: 'Only pending loans can be rejected' });
+    }
+
+    loan.status = 'rejected';
+    loan.rejectedAt = new Date();
+    await loan.save();
+
+    res.json({ message: 'Loan rejected successfully', loan });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // User repays a loan
 
 

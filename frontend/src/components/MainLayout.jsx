@@ -1,3 +1,4 @@
+// src/components/MainLayout.jsx
 import React from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -27,6 +28,10 @@ const MainLayout = () => {
           </a>
           <a href="/loans" className="px-4 py-2 rounded-lg hover:bg-gray-800">
             Loans
+          </a>
+          {/* Naya Profit History link */}
+          <a href="/profit" className="px-4 py-2 rounded-lg hover:bg-gray-800">
+            Profit History
           </a>
           {user?.role === "admin" && (
             <a href="/admin" className="px-4 py-2 rounded-lg hover:bg-gray-800">

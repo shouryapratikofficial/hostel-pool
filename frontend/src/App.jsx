@@ -1,3 +1,4 @@
+// src/App.jsx
 import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -12,6 +13,7 @@ import LoanManagement from "./pages/admin/LoanManagement";
 import UserList from "./pages/admin/UserList";
 import ProfitPool from "./pages/admin/ProfitPool";
 import Contributions from "./pages/Contributions";
+import Profit from "./pages/Profit"; // Naya component import karein
 
 // Naya Layout component import karein
 import MainLayout from "./components/MainLayout";
@@ -44,6 +46,7 @@ function AppContent() {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/contributions" element={<Contributions />} />
             <Route path="/loans" element={<Loans />} />
+            <Route path="/profit" element={<Profit />} /> {/* Naya route */}
           </Route>
         </Route>
 

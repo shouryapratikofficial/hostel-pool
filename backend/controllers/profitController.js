@@ -1,5 +1,16 @@
 const User = require('../models/User');
 const Profit = require('../models/Profit');
+const ProfitHistory = require('../models/ProfitHistory');
+
+// backend/controllers/profitController.js
+exports.getProfitHistory = async (req, res) => {
+  try {
+    const history = await ProfitHistory.find({ user: req.user._id }).sort({ distributionDate: -1 });
+    res.json(history);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
 
 // New function to get the profit status
 exports.getProfitStatus = async (req, res) => {
@@ -27,6 +38,13 @@ exports.distributeProfitNow = async (req, res) => {
       user.balance += share;
       await user.save();
     }
+
+    const profitHistoryEntries = users.map(user => ({
+      user: user._id,
+      amount: share
+    }));
+
+    await ProfitHistory.insertMany(profitHistoryEntries);
 
     profit.totalProfit = 0;
     await profit.save();

@@ -1,6 +1,16 @@
 const User = require('../models/User');
 const Profit = require('../models/Profit');
 
+// New function to get the profit status
+exports.getProfitStatus = async (req, res) => {
+  try {
+    const profit = await Profit.findOne();
+    res.json({ totalProfit: profit?.totalProfit || 0 });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 exports.distributeProfitNow = async (req, res) => {
   try {
     const profit = await Profit.findOne();

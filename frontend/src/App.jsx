@@ -1,5 +1,4 @@
 import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
-import Navbar from "./components/Navbar";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import PrivateRoute from "./components/PrivateRoute";
@@ -14,6 +13,9 @@ import UserList from "./pages/admin/UserList";
 import ProfitPool from "./pages/admin/ProfitPool";
 import Contributions from "./pages/Contributions";
 
+// Naya Layout component import karein
+import MainLayout from "./components/MainLayout";
+
 function App() {
   return (
     <Router>
@@ -27,29 +29,32 @@ function AppContent() {
   const noNavbarRoutes = ["/"];
   const hideNavbar = noNavbarRoutes.includes(location.pathname);
 
+  // Note: Navbar is now part of the MainLayout, so it's removed from here.
 
   return (
     <>
-      {!hideNavbar && <Navbar />}
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
-        {/* Protected */}
+        {/* Protected Routes ko naye layout ke andar daal dein */}
         <Route element={<PrivateRoute />}>
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/contributions" element={<Contributions />} />
-          <Route path="/loans" element={<Loans />} />
+          <Route element={<MainLayout />}>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/contributions" element={<Contributions />} />
+            <Route path="/loans" element={<Loans />} />
+          </Route>
         </Route>
 
-        {/* Admin only */}
+        {/* Admin only routes bhi naye layout ke andar daal dein */}
         <Route element={<AdminRoute />}>
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/admin/loans" element={<LoanManagement />} />
-          <Route path="/admin/users" element={<UserList />} />
-          <Route path="/admin/profit" element={<ProfitPool />} />
-
+          <Route element={<MainLayout />}>
+            <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/admin/loans" element={<LoanManagement />} />
+            <Route path="/admin/users" element={<UserList />} />
+            <Route path="/admin/profit" element={<ProfitPool />} />
+          </Route>
         </Route>
       </Routes>
     </>

@@ -30,7 +30,7 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="bg-gray-50 p-6">
       <h1 className="text-3xl font-bold mb-6">Admin Dashboard</h1>
 
       {/* Stats Cards */}
@@ -45,10 +45,10 @@ export default function AdminDashboard() {
       <div className="bg-white rounded-xl shadow p-6 mb-8">
         <h2 className="text-xl font-semibold mb-4">Profit Trend</h2>
         <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={data}>
+          <LineChart data={data} margin={{ top: 5, right: 0, left: 10, bottom: 5 }}> {/* Margins adjusted */}
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="month" />
-            <YAxis />
+            <YAxis width={60} /> {/* YAxis width reduced */}
             <Tooltip />
             <Line type="monotone" dataKey="profit" stroke="#4f46e5" strokeWidth={3} />
           </LineChart>

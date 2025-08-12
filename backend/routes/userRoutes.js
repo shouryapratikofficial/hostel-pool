@@ -1,7 +1,7 @@
 const express = require('express');
 const { protect, adminOnly } = require('../middleware/authMiddleware');
 const router = express.Router();
-const { getDashboard } = require('../controllers/userController');
+const { getDashboard , getAllUsers } = require('../controllers/userController');
 
 router.get('/dashboard', protect, getDashboard);
 
@@ -10,8 +10,6 @@ router.get('/profile', protect, (req, res) => {
 });
 
 // Example admin-only route
-router.get('/all-users', protect, adminOnly, (req, res) => {
-  res.json({ message: 'Only admin can see this' });
-});
+router.get('/all-users', protect, adminOnly, getAllUsers);
 
 module.exports = router;

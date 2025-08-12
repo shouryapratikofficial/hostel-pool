@@ -1,47 +1,39 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
-import { useAuth } from "../context/AuthContext";
+import api from "../services/api";
 
 export default function Contributions() {
-  const { token } = useAuth();  // AuthContext se token lo
   const [contributions, setContributions] = useState([]);
   const [amount, setAmount] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Fetch contributions from backend on component mount
-  useEffect(() => {
-    async function fetchContributions() {
-      setLoading(true);
-      setError("");
-      try {
-        const res = await axios.get("/api/contributions/my", {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        setContributions(res.data.contributions);
-      } catch (err) {
-        setError("Failed to load contributions.");
-      } finally {
-        setLoading(false);
-      }
+  const fetchContributions = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const { data } = await api.get("/contributions/my");
+      setContributions(data); // Assume data is the array, as per our backend
+    } catch (err) {
+      setError("Failed to load contributions.");
+    } finally {
+      setLoading(false);
     }
-    if (token) fetchContributions();
-  }, [token]);
+  };
 
-  // Handle add contribution submit
+  useEffect(() => {
+    fetchContributions();
+  }, []);
+
   const handleAdd = async (e) => {
     e.preventDefault();
     if (!amount) return;
     setLoading(true);
     setError("");
     try {
-      const res = await axios.post(
-        "/api/contributions/add",
-        { amount: parseInt(amount) },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      // Add new contribution to state at top
-      setContributions([res.data.contribution, ...contributions]);
+      const { data } = await api.post("/contributions/add", {
+        amount: parseInt(amount),
+      });
+      setContributions([data.contribution, ...contributions]);
       setAmount("");
     } catch (err) {
       setError("Failed to add contribution.");
@@ -98,7 +90,7 @@ export default function Contributions() {
               </tr>
             ) : (
               contributions.map((c) => (
-                <tr key={c.id} className="border-t">
+                <tr key={c._id} className="border-t">
                   <td className="px-4 py-2">{new Date(c.date).toLocaleDateString()}</td>
                   <td className="px-4 py-2 font-medium">{c.amount}</td>
                 </tr>

@@ -19,6 +19,13 @@ cron.schedule('0 0 1 * *', async () => {
     for (let user of users) {
       user.balance += share;
       await user.save();
+      // NEW: Create a notification for each user
+      await Notification.create({
+        user: user._id,
+        message: `You have received ₹${share.toFixed(2)} from the monthly profit distribution.`,
+        link: '/profit',
+      });
+
     }
 
     profit.totalProfit = 0;

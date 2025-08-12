@@ -1,7 +1,7 @@
 const Loan = require('../models/Loan');
 const Profit = require('../models/Profit');
 const PoolFund = require('../models/PoolFund');  // Import PoolFund model
-
+const Notification = require('../models/Notification');
 // User requests a loan
 exports.requestLoan = async (req, res) => {
   try {
@@ -59,6 +59,13 @@ exports.approveLoan = async (req, res) => {
     poolFund.blockedAmount += loan.amount;
     await poolFund.save();
 
+    // NEW: Create a notification for the borrower
+    await Notification.create({
+      user: loan.borrower,
+      message: `Your loan request for ₹${loan.amount} has been approved.`,
+      link: '/loans',
+    });
+
     res.json({ message: 'Loan approved successfully', loan });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -79,6 +86,13 @@ exports.rejectLoan = async (req, res) => {
     loan.status = 'rejected';
     loan.rejectedAt = new Date();
     await loan.save();
+
+     // NEW: Create a notification for the borrower
+    await Notification.create({
+      user: loan.borrower,
+      message: `Your loan request for ₹${loan.amount} has been rejected.`,
+      link: '/loans',
+    });
 
     res.json({ message: 'Loan rejected successfully', loan });
   } catch (error) {

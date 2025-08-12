@@ -1,4 +1,4 @@
-// src/App.jsx
+// src/App.jsx (modifications)
 import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -7,16 +7,14 @@ import AdminRoute from "./components/AdminRoute";
 import Dashboard from "./pages/Dashboard";
 import Landing from "./pages/Landing";
 import AdminDashboard from "./pages/admin/AdminDashboard";
-
 import Loans from "./pages/Loans";
 import LoanManagement from "./pages/admin/LoanManagement";
 import UserList from "./pages/admin/UserList";
 import ProfitPool from "./pages/admin/ProfitPool";
 import Contributions from "./pages/Contributions";
-import Profit from "./pages/Profit"; // Naya component import karein
-
-// Naya Layout component import karein
+import Profit from "./pages/Profit";
 import MainLayout from "./components/MainLayout";
+import Notifications from "./pages/Notifications"; // NEW: Import the new component
 
 function App() {
   return (
@@ -31,8 +29,6 @@ function AppContent() {
   const noNavbarRoutes = ["/"];
   const hideNavbar = noNavbarRoutes.includes(location.pathname);
 
-  // Note: Navbar is now part of the MainLayout, so it's removed from here.
-
   return (
     <>
       <Routes>
@@ -40,17 +36,16 @@ function AppContent() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
-        {/* Protected Routes ko naye layout ke andar daal dein */}
         <Route element={<PrivateRoute />}>
           <Route element={<MainLayout />}>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/contributions" element={<Contributions />} />
             <Route path="/loans" element={<Loans />} />
-            <Route path="/profit" element={<Profit />} /> {/* Naya route */}
+            <Route path="/profit" element={<Profit />} />
+            <Route path="/notifications" element={<Notifications />} /> {/* NEW: Add new route */}
           </Route>
         </Route>
 
-        {/* Admin only routes bhi naye layout ke andar daal dein */}
         <Route element={<AdminRoute />}>
           <Route element={<MainLayout />}>
             <Route path="/admin" element={<AdminDashboard />} />

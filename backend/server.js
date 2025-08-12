@@ -2,6 +2,7 @@ const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
 const connectDB = require('./config/db');
+const notificationRoutes = require('./routes/notificationRoutes');
 require('./cron/profitDistribution');
 
 dotenv.config();
@@ -16,6 +17,7 @@ app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/contributions', require('./routes/contributionRoutes'));
 app.use('/api/loans', require('./routes/loanRoutes'));
 app.use('/api/profit', require('./routes/profitRoutes'));
+app.use('/api/notifications', notificationRoutes); // new route
 
 
 

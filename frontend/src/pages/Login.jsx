@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { ArrowLeftIcon } from '@heroicons/react/24/solid';
 
 const Login = () => {
   const { login, loading, user } = useAuth();
@@ -28,15 +29,21 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <div className="max-w-md w-full bg-white p-6 rounded-lg shadow">
-        <h2 className="text-2xl font-bold text-center mb-6">Login</h2>
+    <div className="min-h-screen flex items-center justify-center bg-slate-950 px-4">
+      <div className="max-w-md w-full bg-slate-900 p-8 rounded-xl shadow-lg border border-slate-800">
+        <div className="flex justify-between items-center mb-6">
+          <Link to="/" className="text-xl font-bold tracking-wide text-indigo-400 hover:text-indigo-300 transition">
+            <ArrowLeftIcon className="h-6 w-6 inline-block mr-2" />
+            HostelPool
+          </Link>
+          <h2 className="text-3xl font-bold text-white">Login</h2>
+        </div>
         {error && <p className="text-red-500 mb-4">{error}</p>}
         <form onSubmit={handleSubmit} className="space-y-4">
           <input
             type="email"
             placeholder="Email"
-            className="w-full border rounded px-3 py-2"
+            className="w-full border border-slate-700 bg-slate-800 text-white rounded-lg px-4 py-3 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -44,7 +51,7 @@ const Login = () => {
           <input
             type="password"
             placeholder="Password"
-            className="w-full border rounded px-3 py-2"
+            className="w-full border border-slate-700 bg-slate-800 text-white rounded-lg px-4 py-3 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
@@ -52,14 +59,14 @@ const Login = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
+            className="w-full bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-500 disabled:opacity-50 transition font-semibold text-lg"
           >
             {loading ? "Logging in..." : "Login"}
           </button>
         </form>
-        <p className="text-sm text-center mt-4">
+        <p className="text-sm text-center mt-6 text-slate-400">
           Don't have an account?{" "}
-          <Link to="/register" className="text-blue-600 hover:underline">
+          <Link to="/register" className="text-indigo-400 hover:underline">
             Register
           </Link>
         </p>

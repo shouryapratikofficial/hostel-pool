@@ -1,7 +1,7 @@
 const User = require('../models/User');
 const Profit = require('../models/Profit');
 const ProfitHistory = require('../models/ProfitHistory');
-
+const Notification = require('../models/Notification');
 // backend/controllers/profitController.js
 exports.getProfitHistory = async (req, res) => {
   try {
@@ -37,7 +37,16 @@ exports.distributeProfitNow = async (req, res) => {
     for (let user of users) {
       user.balance += share;
       await user.save();
+
+      // NEW: Create a notification for each user
+      await Notification.create({
+        user: user._id,
+        message: `You have received ₹${share.toFixed(2)} from the monthly profit distribution.`,
+        link: '/profit',
+      });
     }
+
+    
 
     const profitHistoryEntries = users.map(user => ({
       user: user._id,

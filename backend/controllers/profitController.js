@@ -1,0 +1,28 @@
+const User = require('../models/User');
+const Profit = require('../models/Profit');
+
+exports.distributeProfitNow = async (req, res) => {
+  try {
+    const profit = await Profit.findOne();
+    if (!profit || profit.totalProfit <= 0) {
+      return res.status(400).json({ message: 'No profit to distribute' });
+    }
+
+    const users = await User.find();
+    if (users.length === 0) return res.status(400).json({ message: 'No users found' });
+
+    const share = profit.totalProfit / users.length;
+
+    for (let user of users) {
+      user.balance += share;
+      await user.save();
+    }
+
+    profit.totalProfit = 0;
+    await profit.save();
+
+    res.json({ message: `Distributed profit of ${share} to each user and reset pool` });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

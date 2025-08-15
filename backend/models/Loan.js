@@ -24,6 +24,9 @@ const loanSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+   interestRate: { // YEH NAYA FIELD HAI
+    type: Number 
+  },
   requestedAt: {
     type: Date,
     default: Date.now

@@ -52,11 +52,18 @@ exports.approveLoan = async (req, res) => {
   return res.status(400).json({ message: 'Loan amount exceeds available pool fund' });
 }
 
+   
+    const settings = await AdminSetting.findOne();
+    if (!settings) {
+      return res.status(500).json({ message: 'Admin settings not found.' });
+    }
+
 
     // Approve loan and block fund
     loan.status = 'approved';
     loan.approvedAt = new Date();
-    await loan.save();
+     loan.interestRate = settings.loanInterestRate; 
+    await loan.save()
 
     poolFund.blockedAmount += loan.amount;
     await poolFund.save();
@@ -111,8 +118,7 @@ exports.repayLoan = async (req, res) => {
     if (!loan) return res.status(404).json({ message: 'Loan not found' });
     if (loan.status !== 'approved') return res.status(400).json({ message: 'Loan is not active' });
 
-    const settings = await AdminSetting.findOne(); // Settings fetch karein
-    const interestRate = (settings.loanInterestRate || 5) / 100; // Database se rate lein
+    const interestRate = (loan.interestRate || 5) / 100; // loan Database se rate lein
 
 
     // --- NAYA INTEREST CALCULATION LOGIC ---
@@ -185,8 +191,10 @@ exports.getRepaymentDetails = async (req, res) => {
     if (!loan || loan.status !== 'approved') {
       return res.status(404).json({ message: 'Active loan not found.' });
     }
-    const settings = await AdminSetting.findOne(); // Settings fetch karein
-    const interestRate = (settings.loanInterestRate || 5) / 100; // Database se rate lein, ya default 5%
+
+    // YAHAN BADLAV HAI: AdminSetting se nahi, loan se rate lENA HAI 
+    const interestRate = (loan.interestRate || 5) / 100; // Use the rate saved WITH THE LOAN
+
     const approvedDate = new Date(loan.approvedAt);
     const today = new Date();
     const monthsPassed = (today.getFullYear() - approvedDate.getFullYear()) * 12 + (today.getMonth() - approvedDate.getMonth());

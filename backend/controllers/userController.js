@@ -3,16 +3,16 @@ const User = require('../models/User');
 const Loan = require('../models/Loan');
 const Contribution = require('../models/Contribution');
 const Profit = require('../models/Profit');
-const AdminSetting = require('../models/AdminSetting'); // new
+const AdminSetting = require('../models/AdminSetting');
 const Dues = require('../models/Dues');
-const Withdrawal = require('../models/Withdrawal'); // Naya model 
-const ActivityLog = require('../models/ActivityLog'); // 
+const Withdrawal = require('../models/Withdrawal');
+const ActivityLog = require('../models/ActivityLog');
 
-
+// Helper function to get the start of the week (Sunday)
 const getStartOfWeek = (date) => {
     const d = new Date(date);
     const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? 0:0);
+    const diff = d.getDate() - day + (day === 0 ? 0 : 0); // Adjust when day is Sunday
     return new Date(d.setDate(diff));
 };
 
@@ -26,9 +26,6 @@ exports.getDashboard = async (req, res) => {
       status: { $in: ['pending', 'approved'] }
     });
 
-
-
-     // Get pool fund info
     const poolFund = await PoolFund.findOne();
 
     res.json({
@@ -46,10 +43,8 @@ exports.getDashboard = async (req, res) => {
 
 exports.getAdminSettings = async (req, res) => {
   try {
-    // findOne() hamesha ek document dega, ya null agar nahi hai
     let settings = await AdminSetting.findOne();
     if (!settings) {
-      // Agar koi setting nahi hai, to ek default setting banakar save kar dein
       settings = await new AdminSetting().save();
     }
     res.json(settings);
@@ -60,13 +55,11 @@ exports.getAdminSettings = async (req, res) => {
 
 exports.updateAdminSettings = async (req, res) => {
   try {
-    const { weeklyContributionAmount, lateFineAmount ,minimumWithdrawalAmount ,loanInterestRate  } = req.body;
+    const { weeklyContributionAmount, lateFineAmount, minimumWithdrawalAmount, loanInterestRate } = req.body;
 
-    // findOneAndUpdate with upsert:true
-    // Agar settings hain to update karega, nahi to naya bana dega.
     const updatedSettings = await AdminSetting.findOneAndUpdate(
-      {}, // Khali filter pehla document match karega
-      { $set: { weeklyContributionAmount, lateFineAmount , minimumWithdrawalAmount , loanInterestRate   } },
+      {},
+      { $set: { weeklyContributionAmount, lateFineAmount, minimumWithdrawalAmount, loanInterestRate } },
       { new: true, upsert: true, runValidators: true }
     );
 
@@ -100,7 +93,6 @@ exports.getAdminDashboardStats = async (req, res) => {
     const totalAvailableBalance = (poolFund?.totalContributions || 0) - (poolFund?.blockedAmount || 0);
     const totalBalance = (poolFund?.totalContributions || 0);
 
-    // Dynamic profit trend data fetch kar rahe hain
     const monthlyProfit = await Loan.aggregate([
       { $match: { status: 'repaid' } },
       {
@@ -122,7 +114,6 @@ exports.getAdminDashboardStats = async (req, res) => {
       }
     ]);
     
-    // Monthly numbers ko month names mein convert karna
     const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     const profitTrend = monthlyProfit.map(p => ({
       month: monthNames[p.month - 1],
@@ -153,35 +144,30 @@ exports.withdrawBalance = async (req, res) => {
       return res.status(400).json({ message: 'Invalid withdrawal amount.' });
     }
 
-    // 1. User ke pending dues check karein
     const pendingDues = await Dues.findOne({ user: userId, status: 'pending' });
     if (pendingDues) {
       return res.status(403).json({ message: 'Please clear all your pending dues before withdrawing.' });
     }
 
-    // 2. User ka active loan check karein
     const activeLoan = await Loan.findOne({ borrower: userId, status: 'approved' });
     if (activeLoan) {
       return res.status(403).json({ message: 'You have an active loan. Please repay it before withdrawing.' });
     }
 
-    // 3. Admin settings se minimum withdrawal amount lein
     const settings = await AdminSetting.findOne();
     if (amount < settings.minimumWithdrawalAmount) {
       return res.status(400).json({ message: `Minimum withdrawal amount is ₹${settings.minimumWithdrawalAmount}.` });
     }
 
-    // 4. User ka balance check karein
     const user = await User.findById(userId);
     if (user.balance < amount) {
       return res.status(400).json({ message: 'Insufficient balance.' });
     }
 
-    // Sab theek hai, to balance se amount kam karein
     user.balance -= amount;
     await user.save();
 
-     await Withdrawal.create({
+    await Withdrawal.create({
       user: userId,
       amount: amount,
     });
@@ -198,7 +184,7 @@ exports.deactivateAccount = async (req, res) => {
   try {
     const userId = req.user._id;
 
-    // 1. Check for pending dues
+    // 1. Check for pending dues from previous weeks
     const pendingDues = await Dues.findOne({ user: userId, status: 'pending' });
     if (pendingDues) {
       return res.status(403).json({ message: 'Cannot deactivate account. Please clear all pending dues first.' });
@@ -210,36 +196,53 @@ exports.deactivateAccount = async (req, res) => {
       return res.status(403).json({ message: 'Cannot deactivate account. You have an active loan that needs to be repaid.' });
     }
 
+    // 3. Check for the CURRENT week's contribution (New, fair logic)
+    const today = new Date();
+    const startOfWeek = getStartOfWeek(today);
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    const currentWeekContribution = await Contribution.findOne({
+      user: userId,
+      createdAt: { $gte: startOfWeek }
+    });
+
+    if (!currentWeekContribution) {
+      return res.status(403).json({ message: 'Please make the contribution for the current week before deactivating your account.' });
+    }
+
+    // --- Loophole Fix ---
+    // Deleting the current week's contribution record to prevent reactivation exploit.
+    // The money for this is returned as part of totalContributions.
+    await Contribution.deleteOne({
+      user: userId,
+      createdAt: { $gte: startOfWeek }
+    });
+
     // Deactivate the user
     const user = await User.findById(userId);
 
-       // Calculate total return amount
-     const totalContributions = user.contributions || 0;
+    // Calculate total return amount AFTER finding the user
+    const totalContributions = user.contributions || 0;
     const accountBalance = user.balance || 0;
     const totalReturnAmount = totalContributions + accountBalance;
 
-
-// hostel pool fund ko kam kr
-
-
+    // Adjust the main pool fund
     const poolFund = await PoolFund.findOne();
     if (poolFund) {
       poolFund.totalContributions -= totalContributions;
-     
       await poolFund.save();
     }
 
-    // Reset user's funds
+    // Reset user's financial data
     user.contributions = 0;
     user.balance = 0;
-
-    // Deactivate user
-
     user.isActive = false;
     await user.save();
+    
+    // Log the deactivation event
     await ActivityLog.create({ user: userId, activityType: 'deactivated' });
 
-    res.json({ message: 'Your account has been successfully deactivated. You will be logged out.' ,  returnedAmount: totalReturnAmount });
+    res.json({ message: 'Your account has been successfully deactivated. You will be logged out.', returnedAmount: totalReturnAmount });
 
   } catch (error) {
     console.error('Error during account deactivation:', error);

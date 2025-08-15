@@ -30,9 +30,17 @@ exports.requestLoan = async (req, res) => {
 
 exports.approveLoan = async (req, res) => {
   try {
-    const loan = await Loan.findById(req.params.id);
+        const loan = await Loan.findById(req.params.id).populate('borrower');
     if (!loan) return res.status(404).json({ message: 'Loan not found' });
     if (loan.status !== 'pending') return res.status(400).json({ message: 'Loan is not pending' });
+
+            // --- YEH HAI NAYA SECURITY CHECK ---
+        if (!loan.borrower || !loan.borrower.isActive) {
+            loan.status = 'rejected';
+            await loan.save();
+            return res.status(403).json({ message: 'Cannot approve loan. The user is inactive.' });
+        }
+        // --- NAYA CHECK KHATAM ---
 
     // Fetch the pool fund doc (assume single doc)
     let poolFund = await PoolFund.findOne();

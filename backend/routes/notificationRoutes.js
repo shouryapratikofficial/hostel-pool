@@ -14,6 +14,25 @@ router.get('/', protect, async (req, res) => {
   }
 });
 
+// --- YEH HAI NAYA ROUTE ---
+// Mark a single notification as read
+router.patch('/:id/read', protect, async (req, res) => {
+    try {
+        const notification = await Notification.findOneAndUpdate(
+            { _id: req.params.id, user: req.user._id }, // Sirf apne hi notification ko mark kar sakte ho
+            { read: true },
+            { new: true } // updated document wapas bhejta hai
+        );
+        if (!notification) {
+            return res.status(404).json({ message: 'Notification not found' });
+        }
+        res.json(notification);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+// --- NAYA ROUTE KHATAM ---
+
 // Mark all notifications as read for a user
 router.patch('/mark-all-read', protect, async (req, res) => {
   try {

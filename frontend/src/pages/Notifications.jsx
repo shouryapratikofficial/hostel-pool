@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
 import api from "../services/api";
-import { Link } from "react-router-dom";
+import {  useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext"; // useAuth import karo
 
 export default function Notifications() {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
+  const navigate = useNavigate(); 
+  const { fetchUnreadCount } = useAuth(); 
   const fetchNotifications = async () => {
     setLoading(true);
     setError("");
@@ -30,16 +32,30 @@ export default function Notifications() {
     try {
       await api.patch("/notifications/mark-all-read");
       setNotifications(notifications.map(n => ({ ...n, read: true })));
+      fetchUnreadCount();
     } catch (err) {
       console.error("Failed to mark notifications as read:", err);
     }
   };
 
-  const handleNotificationClick = (link) => {
-    if (link) {
-      window.location.href = link;
-      // After navigation, mark the clicked notification as read
-      // This part would require a separate API call to mark a single notification, which is not implemented in the current backend suggestion.
+ const handleNotificationClick = async (notification) => {
+    try {
+      // Step 1: Notification ko "read" mark karne ke liye API call karo
+      if (!notification.read) {
+        await api.patch(`/notifications/${notification._id}/read`);
+        fetchUnreadCount();
+        // Frontend state ko turant update karo taaki UI aacha dikhe
+        setNotifications(notifications.map(n =>
+          n._id === notification._id ? { ...n, read: true } : n
+        ));
+      }
+
+      // Step 2: Agar notification mein link hai, to us par navigate karo
+      if (notification.link) {
+        navigate(notification.link);
+      }
+    } catch (err) {
+      console.error("Failed to mark notification as read:", err);
     }
   };
 
@@ -70,7 +86,7 @@ export default function Notifications() {
               <div
                 key={n._id}
                 className={`p-4 hover:bg-gray-50 cursor-pointer flex justify-between items-center ${n.read ? 'text-gray-500' : 'font-semibold'}`}
-                onClick={() => handleNotificationClick(n.link)}
+                onClick={() => handleNotificationClick(n)}
               >
                 <div>
                   <p>{n.message}</p>

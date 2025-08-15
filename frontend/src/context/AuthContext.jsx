@@ -1,5 +1,5 @@
 // src/context/AuthContext.jsx
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import  { createContext, useContext, useEffect, useState } from 'react';
 import api from '../services/api';
 
 const AuthContext = createContext();
@@ -13,11 +13,26 @@ export const AuthProvider = ({ children }) => {
     }
   });
   const [loading, setLoading] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+   const fetchUnreadCount = async () => {
+    if (!user) return; // Agar user nahi hai to kuch mat karo
+    try {
+      const { data } = await api.get('/notifications'); // Sirf unread notifications aayenge
+      if (Array.isArray(data)) {
+        setUnreadCount(data.length);
+      }
+    } catch (err) {
+      console.error("Failed to fetch notification count:", err);
+      setUnreadCount(0); // Error ke case mein 0 set kar do
+    }
+  };
 
   useEffect(() => {
     // keep axios default header in sync with user token
     if (user?.token) {
       api.defaults.headers.common.Authorization = `Bearer ${user.token}`;
+      fetchUnreadCount();
     } else {
       delete api.defaults.headers.common.Authorization;
     }
@@ -65,7 +80,7 @@ const login = async (email, password) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, setUser, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, setUser, loading, login, register, logout , unreadCount , fetchUnreadCount }}>
       {children}
     </AuthContext.Provider>
   );

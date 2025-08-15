@@ -1,26 +1,15 @@
 // src/components/MainLayout.jsx (modifications)
-import React, { useState, useEffect } from 'react';
+import React, {  useEffect } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import api from "../services/api"; // Import the api service
+import api from '../services/api';
 
 const MainLayout = () => {
-  const { user, logout } = useAuth();
+  const { user, logout , unreadCount , fetchUnreadCount } = useAuth();
   const navigate = useNavigate();
-  const [unreadNotifications, setUnreadNotifications] = useState([]);
 
   useEffect(() => {
-    const fetchNotifications = async () => {
-      try {
-        const { data } = await api.get("/notifications");
-        setUnreadNotifications(data);
-      } catch (err) {
-        console.error("Failed to fetch notifications:", err);
-      }
-    };
-    if (user) {
-      fetchNotifications();
-    }
+    if(user) fetchUnreadCount();
   }, [user]);
 
   const handleLogout = () => {
@@ -45,9 +34,9 @@ const MainLayout = () => {
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 cursor-pointer" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
               </svg>
-              {unreadNotifications.length > 0 && (
+              {unreadCount > 0 && (
                 <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-red-100 transform translate-x-1/2 -translate-y-1/2 bg-red-600 rounded-full">
-                  {unreadNotifications.length}
+                  {unreadCount}
                 </span>
               )}
             </div>

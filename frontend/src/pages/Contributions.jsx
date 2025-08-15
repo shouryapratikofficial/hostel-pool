@@ -2,97 +2,120 @@ import { useState, useEffect } from "react";
 import api from "../services/api";
 
 export default function Contributions() {
-  const [contributions, setContributions] = useState([]);
-  const [amount, setAmount] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [history, setHistory] = useState([]); // Ab yeh combined history rakhega
+  const [status, setStatus] = useState({
+    isContributionDue: false,
+    amountDue: 0,
+    message: ""
+  });
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [paymentLoading, setPaymentLoading] = useState(false);
 
-  const fetchContributions = async () => {
+  const fetchPageData = async () => {
     setLoading(true);
     setError("");
     try {
-      const { data } = await api.get("/contributions/my");
-      setContributions(data); // Assume data is the array, as per our backend
+      // Dono API calls ek saath karein
+      const [statusRes, historyRes] = await Promise.all([
+        api.get("/contributions/status"),
+        api.get("/contributions/history") // Naya endpoint call karein
+      ]);
+      setStatus(statusRes.data);
+      setHistory(historyRes.data); // Yahan combined history set hogi
     } catch (err) {
-      setError("Failed to load contributions.");
+      setError("Failed to load contribution data.");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchContributions();
+    fetchPageData();
   }, []);
 
-  const handleAdd = async (e) => {
+  const handlePay = async (e) => {
     e.preventDefault();
-    if (!amount) return;
-    setLoading(true);
+    setPaymentLoading(true);
     setError("");
     try {
-      const { data } = await api.post("/contributions/add", {
-        amount: parseInt(amount),
+      await api.post("/contributions/add", {
+        amount: status.amountDue,
       });
-      setContributions([data.contribution, ...contributions]);
-      setAmount("");
+      fetchPageData(); 
     } catch (err) {
-      setError("Failed to add contribution.");
+      setError(err.response?.data?.message || "Payment failed.");
     } finally {
-      setLoading(false);
+      setPaymentLoading(false);
     }
+  };
+  
+  // Status ke liye alag-alag colors
+  const getStatusColor = (status) => {
+    if (status === 'Paid' || status === 'paid') return 'text-green-600';
+    if (status === 'pending') return 'text-red-600';
+    return 'text-gray-700';
   };
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Your Contributions</h1>
+      <h1 className="text-2xl font-bold mb-4">Make Your Contribution</h1>
 
-      {error && (
-        <div className="mb-4 text-red-600 font-semibold">{error}</div>
+       {error && <div className="mb-4 text-red-600 font-semibold">{error}</div>}
+
+      {/* Contribution Form */}
+      {loading ? <p>Loading payment status...</p> : (
+        <form
+          onSubmit={handlePay}
+          className="bg-white p-4 rounded-lg shadow mb-6 flex gap-4 items-center"
+        >
+          <div className="flex-1">
+            <input
+              type="text"
+              value={`Amount to Pay: ₹${status.amountDue}`}
+              className="border rounded-lg px-3 py-2 w-full bg-gray-100 text-gray-700 font-semibold"
+              disabled
+            />
+            <p className="text-xs text-gray-500 mt-1 ml-1">{status.message}</p>
+          </div>
+          <button
+            type="submit"
+            className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={paymentLoading || !status.isContributionDue}
+          >
+            {paymentLoading ? "Processing..." : "Pay Now"}
+          </button>
+        </form>
       )}
 
-      {/* Add Contribution Form */}
-      <form
-        onSubmit={handleAdd}
-        className="bg-white p-4 rounded-lg shadow mb-6 flex gap-4"
-      >
-        <input
-          type="number"
-          placeholder="Amount in ₹"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          className="border rounded-lg px-3 py-2 flex-1"
-          disabled={loading}
-        />
-        <button
-          type="submit"
-          className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-500 disabled:opacity-50"
-          disabled={loading}
-        >
-          {loading ? "Processing..." : "Add"}
-        </button>
-      </form>
-
-      {/* Contributions Table */}
+      {/* Combined History Table */}
+      <h2 className="text-xl font-bold mb-4 mt-8">Your Transaction History</h2>
       <div className="bg-white rounded-lg shadow overflow-hidden">
-        <table className="w-full">
+         <table className="w-full">
           <thead className="bg-gray-200 text-gray-600">
             <tr>
               <th className="px-4 py-2 text-left">Date</th>
+              <th className="px-4 py-2 text-left">Type</th>
               <th className="px-4 py-2 text-left">Amount (₹)</th>
+              <th className="px-4 py-2 text-left">Status</th>
             </tr>
           </thead>
           <tbody>
-            {contributions.length === 0 && !loading ? (
+            {history.length === 0 && !loading ? (
               <tr>
-                <td colSpan={2} className="text-center py-4 text-gray-500">
-                  No contributions found.
+                <td colSpan={4} className="text-center py-4 text-gray-500">
+                  No transaction history found.
                 </td>
               </tr>
             ) : (
-              contributions.map((c) => (
-                <tr key={c._id} className="border-t">
-                  <td className="px-4 py-2">{new Date(c.date).toLocaleDateString()}</td>
-                  <td className="px-4 py-2 font-medium">{c.amount}</td>
+              history.map((item) => (
+                <tr key={item._id} className="border-t">
+                  <td className="px-4 py-2">{new Date(item.date).toLocaleDateString()}</td>
+                  <td className="px-4 py-2 font-medium">{item.type}</td>
+                  <td className="px-4 py-2">{item.amount}</td>
+                  <td className={`px-4 py-2 font-bold capitalize ${getStatusColor(item.status)}`}>
+                    {item.status}
+                  </td>
                 </tr>
               ))
             )}

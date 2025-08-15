@@ -12,10 +12,10 @@ import LoanManagement from "./pages/admin/LoanManagement";
 import UserList from "./pages/admin/UserList";
 import ProfitPool from "./pages/admin/ProfitPool";
 import Contributions from "./pages/Contributions";
-import Profit from "./pages/Profit";
+import TransactionHistory from "./pages/Profit";
 import MainLayout from "./components/MainLayout";
 import Notifications from "./pages/Notifications"; // NEW: Import the new component
-
+import AdminSettings from "./pages/admin/AdminSettings";
 function App() {
   return (
     <Router>
@@ -41,7 +41,7 @@ function AppContent() {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/contributions" element={<Contributions />} />
             <Route path="/loans" element={<Loans />} />
-            <Route path="/profit" element={<Profit />} />
+            <Route path="/profit" element={<TransactionHistory />} />
             <Route path="/notifications" element={<Notifications />} /> {/* NEW: Add new route */}
           </Route>
         </Route>
@@ -52,6 +52,7 @@ function AppContent() {
             <Route path="/admin/loans" element={<LoanManagement />} />
             <Route path="/admin/users" element={<UserList />} />
             <Route path="/admin/profit" element={<ProfitPool />} />
+            <Route path="/admin/settings" element={<AdminSettings />} />
           </Route>
         </Route>
       </Routes>

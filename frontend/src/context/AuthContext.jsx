@@ -23,19 +23,23 @@ export const AuthProvider = ({ children }) => {
     }
   }, [user]);
 
-  const login = async (email, password) => {
+const login = async (email, password) => {
     setLoading(true);
     try {
       const { data } = await api.post('/auth/login', { email, password });
-      // data should include token and role etc.
       localStorage.setItem('userInfo', JSON.stringify(data));
       setUser(data);
       setLoading(false);
       return { ok: true, data };
     } catch (err) {
       setLoading(false);
+      // --- YEH HISSA SABSE ZAROORI HAI ---
+      // Error ke saath 'inactive' signal ko bhi pakdein
       const message = err.response?.data?.message || err.message;
-      return { ok: false, message };
+      const inactive = err.response?.data?.inactive || false; 
+      
+      // Dono cheezon ko Login page par wapas bhejein
+      return { ok: false, message, inactive };
     }
   };
 

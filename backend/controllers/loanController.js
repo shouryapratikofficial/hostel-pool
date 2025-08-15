@@ -2,6 +2,8 @@ const Loan = require('../models/Loan');
 const Profit = require('../models/Profit');
 const PoolFund = require('../models/PoolFund');  // Import PoolFund model
 const Notification = require('../models/Notification');
+const AdminSetting = require('../models/AdminSetting'); // 
+
 // User requests a loan
 exports.requestLoan = async (req, res) => {
   try {
@@ -109,34 +111,44 @@ exports.repayLoan = async (req, res) => {
     if (!loan) return res.status(404).json({ message: 'Loan not found' });
     if (loan.status !== 'approved') return res.status(400).json({ message: 'Loan is not active' });
 
-    // Interest rate 5%
-    const interest = loan.amount * 0.05;
+    const settings = await AdminSetting.findOne(); // Settings fetch karein
+    const interestRate = (settings.loanInterestRate || 5) / 100; // Database se rate lein
+
+
+    // --- NAYA INTEREST CALCULATION LOGIC ---
+    const approvedDate = new Date(loan.approvedAt);
+    const repaymentDate = new Date();
+    
+    // Mahino ka antar calculate karein
+    const monthsPassed = (repaymentDate.getFullYear() - approvedDate.getFullYear()) * 12 + (repaymentDate.getMonth() - approvedDate.getMonth());
+    
+    // Kam se kam ek mahine ka interest lagega, bhale hi kuchh din mein repay kar dein
+    const loanDurationInMonths = Math.max(1, monthsPassed);
+
+    // 5% mahine ka sadharan byaaj
+    const interest = loan.amount * interestRate * loanDurationInMonths;
+    const totalRepaymentAmount = loan.amount + interest;
+    // --- END OF NEW LOGIC ---
 
     loan.status = 'repaid';
-    loan.repaidAt = new Date();
-    loan.interest = interest;
+    loan.repaidAt = repaymentDate;
+    loan.interest = interest; // Naya calculated interest
+    loan.repaidAmount = totalRepaymentAmount; // Nayi total rakam
     await loan.save();
 
-    // Update pool fund: reduce blockedAmount since loan is repaid
+    // PoolFund aur Profit ko update karna waise hi rahega
     let poolFund = await PoolFund.findOne();
-    if (!poolFund) {
-      // Should not happen ideally, but create if missing
-      poolFund = new PoolFund({ totalContributions: 0, blockedAmount: 0 });
-    }
+    if (!poolFund) poolFund = new PoolFund({ totalContributions: 0, blockedAmount: 0 });
     poolFund.blockedAmount -= loan.amount;
-    if (poolFund.blockedAmount < 0) poolFund.blockedAmount = 0;  // safety check
     await poolFund.save();
 
-    // Add interest to profit pool
     let profit = await Profit.findOne();
     if (!profit) profit = new Profit({ totalProfit: 0 });
-
     profit.totalProfit += interest;
     await profit.save();
 
     res.json({
-      message: 'Loan repaid successfully',
-      interestAddedToPool: interest,
+      message: `Loan of ₹${loan.amount} repaid successfully with an interest of ₹${interest}. Total amount paid: ₹${totalRepaymentAmount}.`,
       loan
     });
   } catch (error) {
@@ -162,5 +174,32 @@ exports.getAllLoans = async (req, res) => {
     res.json(loans);
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+};
+
+
+
+exports.getRepaymentDetails = async (req, res) => {
+  try {
+    const loan = await Loan.findById(req.params.id);
+    if (!loan || loan.status !== 'approved') {
+      return res.status(404).json({ message: 'Active loan not found.' });
+    }
+    const settings = await AdminSetting.findOne(); // Settings fetch karein
+    const interestRate = (settings.loanInterestRate || 5) / 100; // Database se rate lein, ya default 5%
+    const approvedDate = new Date(loan.approvedAt);
+    const today = new Date();
+    const monthsPassed = (today.getFullYear() - approvedDate.getFullYear()) * 12 + (today.getMonth() - approvedDate.getMonth());
+    const loanDurationInMonths = Math.max(1, monthsPassed);
+    const interest = loan.amount * interestRate * loanDurationInMonths;
+    const totalRepaymentAmount = loan.amount + interest;
+
+    res.json({
+      principal: loan.amount,
+      interest: interest.toFixed(2),
+      total: totalRepaymentAmount.toFixed(2),
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error.' });
   }
 };

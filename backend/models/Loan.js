@@ -36,6 +36,9 @@ const loanSchema = new mongoose.Schema({
   },
   rejectedAt: {
     type: Date
+  },
+   repaidAmount: { // Naya field
+    type: Number
   }
 }, { timestamps: true });
 

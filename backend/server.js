@@ -4,7 +4,7 @@ const cors = require('cors');
 const connectDB = require('./config/db');
 const notificationRoutes = require('./routes/notificationRoutes');
 require('./cron/profitDistribution');
-
+require('./cron/weeklyDues'); // new
 dotenv.config();
 connectDB();
 

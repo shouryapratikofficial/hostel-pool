@@ -7,7 +7,12 @@ const userSchema = new mongoose.Schema({
   password: { type: String, required: true },
   role: { type: String, enum: ['member', 'admin'], default: 'member' },
   balance: { type: Number, default: 0 }, // money in their account from profit share
-  contributions: { type: Number, default: 0 } // total contributed
+  contributions: { type: Number, default: 0 }, // total contributed
+  reservedProfit: { type: Number, default: 0 } ,// Profit reserved due to pending dues
+  isActive: { // Yeh naya field hai
+    type: Boolean,
+    default: true
+  }
 }, { timestamps: true });
 
 // Encrypt password before save

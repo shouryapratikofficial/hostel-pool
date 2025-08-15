@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const ActivityLog = require('../models/ActivityLog'); 
 
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' });
@@ -35,6 +36,9 @@ exports.loginUser = async (req, res) => {
     const user = await User.findOne({ email });
 
     if (user && (await user.matchPassword(password))) {
+       if (!user.isActive) {
+        return res.status(403).json({ message: 'This account is currently inactive.' , inactive : true}); //// Yeh frontend ke liye ek signal hai
+      }
       res.json({
         _id: user._id,
         name: user.name,
@@ -47,5 +51,24 @@ exports.loginUser = async (req, res) => {
     }
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+};
+// Reactivate Account
+exports.reactivateAccount = async (req, res) => {
+  const { email } = req.body;
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+    user.isActive = true;
+    
+    await user.save();
+    await ActivityLog.create({ user: user._id, activityType: 'reactivated' });
+
+    res.json({ message: 'Your account has been reactivated. Please login again.' });
+  } catch (error) {
+  
+    res.status(500).json({ message: 'Server error during reactivation.' });
   }
 };

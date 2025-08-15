@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { ArrowLeftIcon } from '@heroicons/react/24/solid';
-
+import api from "../services/api"; // Yeh line zaroori hai 3 hr ke baad bug mila
 const Login = () => {
   const { login, loading, user } = useAuth();
   const [email, setEmail] = useState("");
@@ -20,11 +20,35 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    
+    // Login function ko call karein
     const res = await login(email, password);
+
     if (res.ok) {
       navigate("/dashboard");
     } else {
-      setError(res.message || "Login failed");
+      // Yahan par naya logic
+      if (res.inactive) {
+        // Agar account inactive hai to confirmation poochein
+        const confirmReactivate = window.confirm("Your account is currently inactive. Do you want to reactivate it?");
+       
+        if (confirmReactivate == true) {
+          try {
+            // Naye reactivate API ko call karein
+            const reactivationRes = await api.post('/auth/reactivate', { email });
+            alert(reactivationRes.data.message); // Success message dikhayein
+            // Password field ko clear kar dein taaki user dobara login kare
+            
+          } catch (reactivateErr) {
+            setError(reactivateErr.response?.data?.message || "Failed to reactivate account.");
+          }
+        } else {
+          setError(res.message); // Agar user 'No' kehta hai to original message dikhayein
+        }
+      } else {
+        // Baaki sabhi errors ke liye
+        setError(res.message || "Login failed");
+      }
     }
   };
 

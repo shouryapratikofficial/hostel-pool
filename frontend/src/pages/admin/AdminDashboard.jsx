@@ -75,10 +75,11 @@ export default function AdminDashboard() {
           </div>
 
           {/* Quick Navigation Buttons */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-6">
             <NavButton label="Manage Loans" onClick={() => navigate("/admin/loans")} />
             <NavButton label="View Users" onClick={() => navigate("/admin/users")} />
             <NavButton label="Profit Pool" onClick={() => navigate("/admin/profit")} />
+            <NavButton label="System Settings" onClick={() => navigate("/admin/settings")} />
           </div>
         </>
       )}

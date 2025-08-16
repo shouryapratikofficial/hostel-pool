@@ -1,29 +1,45 @@
-import React, { useState , useEffect} from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useDispatch, useSelector } from 'react-redux';
+import { setCredentials } from '../store/authSlice';
 import { ArrowLeftIcon } from '@heroicons/react/24/solid';
+import api from '../services/api';
 
 const Register = () => {
-    const { register, loading , user } = useAuth();
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
+    const [loading, setLoading] = useState(false);
+    
     const navigate = useNavigate();
+    const dispatch = useDispatch();
+
+    const { userInfo } = useSelector((state) => state.auth);
+
     useEffect(() => {
-        if (user) {
+        if (userInfo) {
             navigate("/dashboard");
         }
-    }, [user, navigate]);
+    }, [userInfo, navigate]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError("");
-        const res = await register(name, email, password);
-        if (res.ok) {
-            navigate("/dashboard");
-        } else {
-            setError(res.message || "Registration failed");
+        setLoading(true);
+        if (password.length < 6) {
+            setError("Password must be at least 6 characters long.");
+            setLoading(false);
+            return;
+        }
+        try {
+            const { data } = await api.post('/auth/register', { name, email, password });
+            dispatch(setCredentials(data));
+            navigate('/dashboard');
+        } catch (err) {
+            setError(err.response?.data?.message || "Registration failed");
+        } finally {
+            setLoading(false);
         }
     };
 

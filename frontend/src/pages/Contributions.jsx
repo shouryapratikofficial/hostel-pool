@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import api from "../services/api";
 
 export default function Contributions() {
-  const [history, setHistory] = useState([]); // Ab yeh combined history rakhega
+  const [history, setHistory] = useState([]);
   const [status, setStatus] = useState({
     isContributionDue: false,
     amountDue: 0,
@@ -16,13 +16,12 @@ export default function Contributions() {
     setLoading(true);
     setError("");
     try {
-      // Dono API calls ek saath karein
       const [statusRes, historyRes] = await Promise.all([
-        api.get("/contributions/status"),
-        api.get("/contributions/history") // Naya endpoint call karein
+        api.get("/contributions/status"), // FIX: "/api" removed
+        api.get("/contributions/history") // FIX: "/api" removed
       ]);
       setStatus(statusRes.data);
-      setHistory(historyRes.data); // Yahan combined history set hogi
+      setHistory(historyRes.data);
     } catch (err) {
       setError("Failed to load contribution data.");
     } finally {
@@ -39,7 +38,7 @@ export default function Contributions() {
     setPaymentLoading(true);
     setError("");
     try {
-      await api.post("/contributions/add", {
+      await api.post("/contributions/add", { // FIX: "/api" removed
         amount: status.amountDue,
       });
       fetchPageData(); 
@@ -50,7 +49,6 @@ export default function Contributions() {
     }
   };
   
-  // Status ke liye alag-alag colors
   const getStatusColor = (status) => {
     if (status === 'Paid' || status === 'paid') return 'text-green-600';
     if (status === 'pending') return 'text-red-600';
@@ -63,7 +61,6 @@ export default function Contributions() {
 
        {error && <div className="mb-4 text-red-600 font-semibold">{error}</div>}
 
-      {/* Contribution Form */}
       {loading ? <p>Loading payment status...</p> : (
         <form
           onSubmit={handlePay}
@@ -88,7 +85,6 @@ export default function Contributions() {
         </form>
       )}
 
-      {/* Combined History Table */}
       <h2 className="text-xl font-bold mb-4 mt-8">Your Transaction History</h2>
       <div className="bg-white rounded-lg shadow overflow-hidden">
          <table className="w-full">

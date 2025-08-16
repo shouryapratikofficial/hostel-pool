@@ -1,54 +1,54 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useDispatch, useSelector } from 'react-redux';
+import { setCredentials } from '../store/authSlice';
 import { ArrowLeftIcon } from '@heroicons/react/24/solid';
-import api from "../services/api"; // Yeh line zaroori hai 3 hr ke baad bug mila
+import api from "../services/api";
+
 const Login = () => {
-  const { login, loading, user } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
 
-  // Redirect if already logged in
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+
+  // Redux store se state access karein
+  const { userInfo } = useSelector((state) => state.auth);
+
   useEffect(() => {
-    if (user) {
+    if (userInfo) {
       navigate("/dashboard");
     }
-  }, [user, navigate]);
+  }, [userInfo, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
-    
-    // Login function ko call karein
-    const res = await login(email, password);
+    setLoading(true);
 
-    if (res.ok) {
+    try {
+      const { data } = await api.post('/auth/login', { email, password });
+      dispatch(setCredentials(data)); // Login success par user info store mein bhejein
       navigate("/dashboard");
-    } else {
-      // Yahan par naya logic
-      if (res.inactive) {
-        // Agar account inactive hai to confirmation poochein
+    } catch (err) {
+      const errorMessage = err.response?.data?.message || "Login failed. Please try again.";
+      setError(errorMessage);
+
+      if (err.response?.data?.inactive) {
         const confirmReactivate = window.confirm("Your account is currently inactive. Do you want to reactivate it?");
-       
-        if (confirmReactivate == true) {
+        if (confirmReactivate) {
           try {
-            // Naye reactivate API ko call karein
             const reactivationRes = await api.post('/auth/reactivate', { email });
-            alert(reactivationRes.data.message); // Success message dikhayein
-            // Password field ko clear kar dein taaki user dobara login kare
-            
+            alert(reactivationRes.data.message);
           } catch (reactivateErr) {
             setError(reactivateErr.response?.data?.message || "Failed to reactivate account.");
           }
-        } else {
-          setError(res.message); // Agar user 'No' kehta hai to original message dikhayein
         }
-      } else {
-        // Baaki sabhi errors ke liye
-        setError(res.message || "Login failed");
       }
+    } finally {
+      setLoading(false);
     }
   };
 

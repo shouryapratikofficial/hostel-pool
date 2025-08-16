@@ -1,6 +1,7 @@
 import { useEffect } from "react";
-import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux"; // Import useSelector
+
 import {
   ShieldCheckIcon,
   CurrencyRupeeIcon,
@@ -9,14 +10,14 @@ import {
 } from '@heroicons/react/24/solid';
 
 export default function Landing() {
-  const { user } = useAuth();
+  const { userInfo } = useSelector((state) => state.auth); // Get user info from Redux
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (user) {
+    if (userInfo) {
       navigate("/dashboard");
     }
-  }, [user, navigate]);
+  }, [userInfo, navigate]);
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-950 text-white font-inter">

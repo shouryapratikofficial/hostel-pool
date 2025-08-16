@@ -1,13 +1,15 @@
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useSelector, useDispatch } from "react-redux";
+import { logout } from "../store/authSlice";
 
 const Navbar = () => {
-  const { user, logout } = useAuth();
+  const { userInfo } = useSelector((state) => state.auth);
+  const dispatch = useDispatch();
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    logout();
+    dispatch(logout());
     navigate("/");
   };
 
@@ -17,7 +19,7 @@ const Navbar = () => {
         HostelPool
       </Link>
       <div className="space-x-4">
-        {!user && (
+        {!userInfo && (
           <>
             <Link to="/login" className="text-gray-700 hover:underline">
               Login
@@ -27,12 +29,12 @@ const Navbar = () => {
             </Link>
           </>
         )}
-        {user && (
+        {userInfo && (
           <>
             <Link to="/dashboard" className="text-gray-700 hover:underline">
               Dashboard
             </Link>
-            {user.role === "admin" && (
+            {userInfo.role === "admin" && (
               <Link to="/admin" className="text-gray-700 hover:underline">
                 Admin
               </Link>

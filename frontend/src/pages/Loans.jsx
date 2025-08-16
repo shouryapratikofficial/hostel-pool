@@ -3,7 +3,6 @@ import api from "../services/api";
 
 function RepayConfirmationModal({ loan, details, onConfirm, onCancel, loading }) {
   if (!loan) return null;
-
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
       <div className="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full">
@@ -36,21 +35,19 @@ function RepayConfirmationModal({ loan, details, onConfirm, onCancel, loading })
 export default function Loans() {
   const [loans, setLoans] = useState([]);
   const [amount, setAmount] = useState("");
-  const [purpose, setPurpose] = useState(""); // Naya state
+  const [purpose, setPurpose] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [repayModal, setRepayModal] = useState({ isOpen: false, loan: null, details: null });
 
-  // Loan history fetch karein
   const fetchMyLoans = async () => {
     setLoading(true);
     setError("");
     try {
-      const { data } = await api.get("/loans/myloans"); // Corrected endpoint
+      const { data } = await api.get("/loans/myloans"); // FIX: "/api" removed
       setLoans(data);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to load loan history.");
-      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -60,38 +57,34 @@ export default function Loans() {
     fetchMyLoans();
   }, []);
 
-  // Loan request handle karein
   const handleRequestLoan = async (e) => {
     e.preventDefault();
     if (!amount || !purpose) {
       setError("Please enter an amount and purpose.");
       return;
     }
-
     setLoading(true);
     setError("");
     try {
-      const { data } = await api.post("/loans/request", {
+      const { data } = await api.post("/loans/request", { // FIX: "/api" removed
         amount: parseInt(amount),
         purpose
       });
-      setLoans([data.loan, ...loans]); // Naya loan list mein add karein
+      setLoans([data.loan, ...loans]);
       setAmount("");
       setPurpose("");
     } catch (err) {
       setError(err.response?.data?.message || "Failed to request loan.");
-      console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
-    const showRepayConfirmation = async (loan) => {
+  const showRepayConfirmation = async (loan) => {
     setLoading(true);
     setError("");
     try {
-      // Backend se poochhein ki abhi kitna amount dena hai
-      const { data } = await api.get(`/loans/${loan._id}/repayment-details`);
+      const { data } = await api.get(`/loans/${loan._id}/repayment-details`); // FIX: "/api" removed
       setRepayModal({ isOpen: true, loan: loan, details: data });
     } catch (err) {
       setError("Could not fetch repayment details.");
@@ -100,15 +93,14 @@ export default function Loans() {
     }
   };
 
-  // Popup mein 'Confirm' click hone par yeh chalega
   const handleRepayLoan = async () => {
     if (!repayModal.loan) return;
     setLoading(true);
     setError("");
     try {
-      await api.patch(`/loans/${repayModal.loan._id}/repay`);
-      setRepayModal({ isOpen: false, loan: null, details: null }); // Popup band karein
-      fetchMyLoans(); // List refresh karein
+      await api.patch(`/loans/${repayModal.loan._id}/repay`); // FIX: "/api" removed
+      setRepayModal({ isOpen: false, loan: null, details: null });
+      fetchMyLoans();
     } catch (err) {
       setError(err.response?.data?.message || "Failed to repay loan.");
     } finally {
@@ -129,12 +121,7 @@ export default function Loans() {
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-4">Loan Management</h1>
-
-      {error && (
-        <div className="mb-4 text-red-600 font-semibold">{error}</div>
-      )}
-
-      {/* Loan Request Form */}
+      {error && <div className="mb-4 text-red-600 font-semibold">{error}</div>}
       <form
         onSubmit={handleRequestLoan}
         className="bg-white p-4 rounded-lg shadow mb-6 flex gap-4"
@@ -165,8 +152,6 @@ export default function Loans() {
           {loading ? "Requesting..." : "Request Loan"}
         </button>
       </form>
-
-      {/* Loan History Table */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <table className="w-full">
           <thead className="bg-gray-200 text-gray-600">
@@ -175,7 +160,7 @@ export default function Loans() {
               <th className="px-4 py-2 text-left">Amount (₹)</th>
               <th className="px-4 py-2 text-left">Purpose</th>
               <th className="px-4 py-2 text-left">Status</th>
-               <th className="px-4 py-2 text-left">Total Repaid (₹)</th>
+              <th className="px-4 py-2 text-left">Total Repaid (₹)</th>
               <th className="px-4 py-2 text-left">Actions</th>
             </tr>
           </thead>
@@ -191,12 +176,12 @@ export default function Loans() {
                   {loan.status}
                 </td>
                  <td className="px-4 py-2 font-semibold">
-            {loan.status === "repaid"  && typeof loan.repaidAmount === 'number' ? `₹${loan.repaidAmount.toFixed(2)}` : '-'}
-          </td>
+                  {loan.status === "repaid" && typeof loan.repaidAmount === 'number' ? `₹${loan.repaidAmount.toFixed(2)}` : '-'}
+                </td>
                 <td className="px-4 py-2">
                   {loan.status === "approved" && (
                     <button
-                      onClick={() => showRepayConfirmation(loan)} // Yahan
+                      onClick={() => showRepayConfirmation(loan)}
                       className="bg-blue-600 text-white text-xs px-2 py-1 rounded hover:bg-blue-500"
                       disabled={loading}
                     >
@@ -216,7 +201,6 @@ export default function Loans() {
           </tbody>
         </table>
       </div>
-
       {repayModal.isOpen && (
         <RepayConfirmationModal 
           loan={repayModal.loan}

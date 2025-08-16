@@ -1,20 +1,21 @@
 import { useState, useEffect } from "react";
 import api from "../services/api";
-import {  useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext"; // useAuth import karo
+import { useNavigate } from "react-router-dom";
+
+// We will create a new slice for notifications later to handle the unread count globally.
+// For now, this component will manage its own state.
 
 export default function Notifications() {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const navigate = useNavigate(); 
-  const { fetchUnreadCount } = useAuth(); 
+  const navigate = useNavigate();
+
   const fetchNotifications = async () => {
     setLoading(true);
     setError("");
     try {
-      // Fetch all notifications for the user, not just unread ones
-      const { data } = await api.get("/notifications?all=true"); // We'll assume a new query parameter to fetch all notifications
+      const { data } = await api.get("/notifications");
       setNotifications(data);
     } catch (err) {
       setError("Failed to fetch notifications.");
@@ -31,8 +32,8 @@ export default function Notifications() {
   const markAllAsRead = async () => {
     try {
       await api.patch("/notifications/mark-all-read");
-      setNotifications(notifications.map(n => ({ ...n, read: true })));
-      fetchUnreadCount();
+      // Refresh the list to show all as read
+      fetchNotifications();
     } catch (err) {
       console.error("Failed to mark notifications as read:", err);
     }
@@ -40,17 +41,13 @@ export default function Notifications() {
 
  const handleNotificationClick = async (notification) => {
     try {
-      // Step 1: Notification ko "read" mark karne ke liye API call karo
       if (!notification.read) {
         await api.patch(`/notifications/${notification._id}/read`);
-        fetchUnreadCount();
-        // Frontend state ko turant update karo taaki UI aacha dikhe
         setNotifications(notifications.map(n =>
           n._id === notification._id ? { ...n, read: true } : n
         ));
       }
 
-      // Step 2: Agar notification mein link hai, to us par navigate karo
       if (notification.link) {
         navigate(notification.link);
       }

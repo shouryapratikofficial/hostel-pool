@@ -10,7 +10,7 @@ export default function TransactionHistory() {
     const fetchHistory = async () => {
       setLoading(true);
       try {
-        const { data } = await api.get("/profit/history");
+        const { data } = await api.get("/profit/history"); // FIX: "/api" removed
         setHistory(data);
       } catch (err) {
         setError("Failed to fetch transaction history.");

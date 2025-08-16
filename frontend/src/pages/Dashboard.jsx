@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
-import { useAuth } from "../context/AuthContext";
+import { useSelector, useDispatch } from "react-redux";
+import { logout } from '../store/authSlice';
 import api from "../services/api";
 
+// This sub-component handles its own local state, so it doesn't need many changes.
 function WithdrawalForm({ currentBalance, onWithdrawal }) {
   const [amount, setAmount] = useState("");
   const [loading, setLoading] = useState(false);
@@ -17,15 +19,13 @@ function WithdrawalForm({ currentBalance, onWithdrawal }) {
       const { data } = await api.post("/users/account/withdraw", { amount: parseInt(amount) });
       setSuccess(data.message);
       setAmount("");
-      onWithdrawal(); // Dashboard data ko refresh karne ke liye
+      onWithdrawal(); // Refresh dashboard data
     } catch (err) {
       setError(err.response?.data?.message || "Withdrawal failed.");
     } finally {
       setLoading(false);
     }
   };
-
-  
 
   return (
     <div className="bg-white p-6 rounded-lg shadow mt-6">
@@ -54,9 +54,9 @@ function WithdrawalForm({ currentBalance, onWithdrawal }) {
   );
 }
 
-// Deactivation ke liye ek naya component
+// This sub-component needs to use Redux to dispatch the logout action.
 function AccountActions() {
-  const { logout } = useAuth(); // Logout function AuthContext se lein
+  const dispatch = useDispatch();
   const [error, setError] = useState("");
   
   const handleDeactivate = async () => {
@@ -65,7 +65,7 @@ function AccountActions() {
       try {
         const { data } = await api.patch("/users/account/deactivate");
         alert(`${data.message} A total of ₹${data.returnedAmount.toFixed(2)} will be returned to you. You will now be logged out.`);
-        logout(); // User ko logout kar dein
+        dispatch(logout()); // Dispatch the logout action from Redux
       } catch (err) {
         setError(err.response?.data?.message || "Deactivation failed.");
       }
@@ -78,7 +78,7 @@ function AccountActions() {
        {error && <p className="text-red-500 mb-2">{error}</p>}
        <button 
         onClick={handleDeactivate}
-        className="w-full py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-500 disabled:opacity-50"
+        className="w-full py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-500"
        >
         Deactivate My Account
        </button>
@@ -89,15 +89,14 @@ function AccountActions() {
   );
 }
 
-
-
+// The main Dashboard component now gets user info from Redux.
 export default function Dashboard() {
+  const { userInfo } = useSelector((state) => state.auth);
   const [userDashboard, setUserDashboard] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   const fetchDashboardData = async () => {
-    // Ab hum isko alag function bana rahe hain taaki isse dobara call kar sakein
     setLoading(true);
     setError("");
     try {
@@ -122,10 +121,9 @@ export default function Dashboard() {
       {!loading && userDashboard && (
         <>
           <h1 className="text-3xl font-bold mb-6">
-            Welcome, {userDashboard.name} 👋
+            Welcome, {userInfo?.name || 'User'} 👋
           </h1>
 
-          {/* Stats Cards - Now Dynamic */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6">
             <div className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition">
               <h2 className="text-gray-600">Your Contribution</h2>
@@ -147,7 +145,6 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Recent Activity - Placeholder for now */}
           <div className="bg-white p-6 rounded-lg shadow">
             <h2 className="text-lg font-bold mb-4">Recent Activity</h2>
             <ul className="space-y-2 text-gray-700">
@@ -160,14 +157,13 @@ export default function Dashboard() {
               )}
             </ul>
           </div>
-               {/* Naya Withdrawal Form  */}
+          
           <WithdrawalForm 
             currentBalance={userDashboard.balance || 0}
-            onWithdrawal={fetchDashboardData} // Success par data refresh karega
+            onWithdrawal={fetchDashboardData}
           />
 
           <AccountActions />
-
         </>
       )}
     </>

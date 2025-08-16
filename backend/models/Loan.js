@@ -4,7 +4,8 @@ const loanSchema = new mongoose.Schema({
   borrower: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true
+    required: true,
+     index: true // Add the index here
   },
   amount: {
     type: Number,

@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-const ActivityLog = require('../models/ActivityLog'); 
+const ActivityLog = require('../models/ActivityLog');
+const { validationResult } = require('express-validator'); // Import validationResult
 
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' });
@@ -8,6 +9,12 @@ const generateToken = (id) => {
 
 // Register User
 exports.registerUser = async (req, res) => {
+  // Check for validation errors first
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
   const { name, email, password, role } = req.body;
 
   try {
@@ -30,6 +37,12 @@ exports.registerUser = async (req, res) => {
 
 // Login User
 exports.loginUser = async (req, res) => {
+  // Check for validation errors
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
   const { email, password } = req.body;
 
   try {
@@ -37,7 +50,7 @@ exports.loginUser = async (req, res) => {
 
     if (user && (await user.matchPassword(password))) {
        if (!user.isActive) {
-        return res.status(403).json({ message: 'This account is currently inactive.' , inactive : true}); //// Yeh frontend ke liye ek signal hai
+        return res.status(403).json({ message: 'This account is currently inactive.' , inactive : true});
       }
       res.json({
         _id: user._id,
@@ -53,8 +66,15 @@ exports.loginUser = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
 // Reactivate Account
 exports.reactivateAccount = async (req, res) => {
+  // Check for validation errors
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
   const { email } = req.body;
   try {
     const user = await User.findOne({ email });

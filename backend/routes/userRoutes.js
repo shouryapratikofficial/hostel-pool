@@ -1,7 +1,7 @@
 const express = require('express');
 const { protect, adminOnly } = require('../middleware/authMiddleware');
 const router = express.Router();
-const { getDashboard , getAllUsers, getAdminDashboardStats, getAdminSettings, updateAdminSettings , withdrawBalance , deactivateAccount } = require('../controllers/userController'); // Import the new function
+const { getDashboard , getAllUsers, getAdminDashboardStats, getAdminSettings, updateAdminSettings , withdrawBalance , deactivateAccount , testDues } = require('../controllers/userController'); // Import the new function
 const { checkWeeklyContributions } = require('../cron/weeklyDues');
 
 
@@ -20,8 +20,6 @@ router.get('/admin/settings', protect, adminOnly, getAdminSettings);
 router.patch('/admin/settings', protect, adminOnly, updateAdminSettings);
 
 //admin check
-router.get('/admin/test-dues', protect, adminOnly, async (req, res) => {
-  await checkWeeklyContributions();
-  res.send('Weekly dues check completed. Check console and database.');
-});
+router.get('/admin/test-dues', protect, adminOnly, testDues); 
+
 module.exports = router;

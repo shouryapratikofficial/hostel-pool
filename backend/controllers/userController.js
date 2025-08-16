@@ -1,251 +1,70 @@
-const PoolFund = require('../models/PoolFund');
-const User = require('../models/User');
-const Loan = require('../models/Loan');
-const Contribution = require('../models/Contribution');
-const Profit = require('../models/Profit');
-const AdminSetting = require('../models/AdminSetting');
-const Dues = require('../models/Dues');
-const Withdrawal = require('../models/Withdrawal');
-const ActivityLog = require('../models/ActivityLog');
+const asyncHandler = require('express-async-handler');
+const userService = require('../services/userService');
+const { checkWeeklyContributions } = require('../cron/weeklyDues');
 
-// Helper function to get the start of the week (Sunday)
-const getStartOfWeek = (date) => {
-    const d = new Date(date);
-    const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? 0 : 0); // Adjust when day is Sunday
-    return new Date(d.setDate(diff));
-};
+// @desc    Get user dashboard data
+// @route   GET /api/users/dashboard
+// @access  Private
+exports.getDashboard = asyncHandler(async (req, res) => {
+    const dashboardData = await userService.getDashboardData(req.user._id);
+    res.json(dashboardData);
+});
 
-exports.getDashboard = async (req, res) => {
-  try {
-    const user = await User.findById(req.user._id).select('-password');
-    if (!user) return res.status(404).json({ message: 'User not found' });
-
-    const pendingLoans = await Loan.find({
-      borrower: req.user._id,
-      status: { $in: ['pending', 'approved'] }
-    });
-
-    const poolFund = await PoolFund.findOne();
-
-    res.json({
-      name: user.name,
-      balance: user.balance || 0,
-      pendingLoans,
-      totalContributions: user.contributions || 0,
-      poolTotalContributions: poolFund?.totalContributions || 0,
-      poolBlockedAmount: poolFund?.blockedAmount || 0
-    });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-exports.getAdminSettings = async (req, res) => {
-  try {
-    let settings = await AdminSetting.findOne();
-    if (!settings) {
-      settings = await new AdminSetting().save();
-    }
-    res.json(settings);
-  } catch (error) {
-    res.status(500).json({ message: 'Server error while fetching settings.' });
-  }
-};
-
-exports.updateAdminSettings = async (req, res) => {
-  try {
-    const { weeklyContributionAmount, lateFineAmount, minimumWithdrawalAmount, loanInterestRate } = req.body;
-
-    const updatedSettings = await AdminSetting.findOneAndUpdate(
-      {},
-      { $set: { weeklyContributionAmount, lateFineAmount, minimumWithdrawalAmount, loanInterestRate } },
-      { new: true, upsert: true, runValidators: true }
-    );
-
-    res.json({ message: 'Settings updated successfully', settings: updatedSettings });
-  } catch (error) {
-    res.status(500).json({ message: 'Server error while updating settings.' });
-  }
-};
-
-exports.getAllUsers = async (req, res) => {
-  try {
-    const users = await User.find().select('-password');
-    res.json(users);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-exports.getAdminDashboardStats = async (req, res) => {
-  try {
-    if (req.user.role !== 'admin') {
-      return res.status(403).json({ message: 'Admin access only' });
-    }
-
-    const poolFund = await PoolFund.findOne();
-    const profit = await Profit.findOne();
-
-    const totalUsers = await User.countDocuments();
-    const totalLoans = await Loan.countDocuments();
-
-    const totalAvailableBalance = (poolFund?.totalContributions || 0) - (poolFund?.blockedAmount || 0);
-    const totalBalance = (poolFund?.totalContributions || 0);
-
-    const monthlyProfit = await Loan.aggregate([
-      { $match: { status: 'repaid' } },
-      {
-        $group: {
-          _id: {
-            month: { $month: '$repaidAt' },
-            year: { $year: '$repaidAt' }
-          },
-          totalInterest: { $sum: '$interest' }
-        }
-      },
-      { $sort: { '_id.year': 1, '_id.month': 1 } },
-      {
-        $project: {
-          _id: 0,
-          month: '$_id.month',
-          profit: '$totalInterest'
-        }
-      }
-    ]);
-    
-    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    const profitTrend = monthlyProfit.map(p => ({
-      month: monthNames[p.month - 1],
-      profit: p.profit
-    }));
-
-    res.json({
-      totalAvailableBalance,
-      totalBalance,
-      blockedAmount: poolFund?.blockedAmount || 0,
-      profitPool: profit?.totalProfit || 0,
-      totalUsers,
-      totalLoans,
-      profitTrend
-    });
-  } catch (error) {
-    console.error("Error in getAdminDashboardStats:", error.message);
-    res.status(500).json({ message: "An error occurred on the server." });
-  }
-};
-
-exports.withdrawBalance = async (req, res) => {
-  try {
+// @desc    Withdraw balance from account
+// @route   POST /api/users/account/withdraw
+// @access  Private
+exports.withdrawBalance = asyncHandler(async (req, res) => {
     const { amount } = req.body;
-    const userId = req.user._id;
-
-    if (!amount || amount <= 0) {
-      return res.status(400).json({ message: 'Invalid withdrawal amount.' });
-    }
-
-    const pendingDues = await Dues.findOne({ user: userId, status: 'pending' });
-    if (pendingDues) {
-      return res.status(403).json({ message: 'Please clear all your pending dues before withdrawing.' });
-    }
-
-    const activeLoan = await Loan.findOne({ borrower: userId, status: 'approved' });
-    if (activeLoan) {
-      return res.status(403).json({ message: 'You have an active loan. Please repay it before withdrawing.' });
-    }
-
-    const settings = await AdminSetting.findOne();
-    if (amount < settings.minimumWithdrawalAmount) {
-      return res.status(400).json({ message: `Minimum withdrawal amount is ₹${settings.minimumWithdrawalAmount}.` });
-    }
-
-    const user = await User.findById(userId);
-    if (user.balance < amount) {
-      return res.status(400).json({ message: 'Insufficient balance.' });
-    }
-
-    user.balance -= amount;
-    await user.save();
-
-    await Withdrawal.create({
-      user: userId,
-      amount: amount,
-    });
-
+    const user = await userService.withdrawUserBalance(req.user._id, parseInt(amount));
     res.json({ message: `Successfully withdrew ₹${amount}. Your new balance is ₹${user.balance}.` });
+});
 
-  } catch (error) {
-    console.error('Error during withdrawal:', error);
-    res.status(500).json({ message: 'Server error during withdrawal.' });
-  }
-};
+// @desc    Deactivate user account
+// @route   PATCH /api/users/account/deactivate
+// @access  Private
+exports.deactivateAccount = asyncHandler(async (req, res) => {
+    const result = await userService.deactivateUserAccount(req.user._id);
+    res.json(result);
+});
 
-exports.deactivateAccount = async (req, res) => {
-  try {
-    const userId = req.user._id;
+// ------------------- ADMIN ROUTES -------------------
 
-    // 1. Check for pending dues from previous weeks
-    const pendingDues = await Dues.findOne({ user: userId, status: 'pending' });
-    if (pendingDues) {
-      return res.status(403).json({ message: 'Cannot deactivate account. Please clear all pending dues first.' });
-    }
+// @desc    Get all users
+// @route   GET /api/users/all-users
+// @access  Admin
+exports.getAllUsers = asyncHandler(async (req, res) => {
+    const users = await userService.getAllUsersData();
+    res.json(users);
+});
 
-    // 2. Check for active loans
-    const activeLoan = await Loan.findOne({ borrower: userId, status: 'approved' });
-    if (activeLoan) {
-      return res.status(403).json({ message: 'Cannot deactivate account. You have an active loan that needs to be repaid.' });
-    }
+// @desc    Get admin dashboard stats
+// @route   GET /api/users/admin/dashboard
+// @access  Admin
+exports.getAdminDashboardStats = asyncHandler(async (req, res) => {
+    const stats = await userService.getAdminStats();
+    res.json(stats);
+});
 
-    // 3. Check for the CURRENT week's contribution (New, fair logic)
-    const today = new Date();
-    const startOfWeek = getStartOfWeek(today);
-    startOfWeek.setHours(0, 0, 0, 0);
+// @desc    Get admin settings
+// @route   GET /api/users/admin/settings
+// @access  Admin
+exports.getAdminSettings = asyncHandler(async (req, res) => {
+    const settings = await userService.getSettings();
+    res.json(settings);
+});
 
-    const currentWeekContribution = await Contribution.findOne({
-      user: userId,
-      createdAt: { $gte: startOfWeek }
-    });
+// @desc    Update admin settings
+// @route   PATCH /api/users/admin/settings
+// @access  Admin
+exports.updateAdminSettings = asyncHandler(async (req, res) => {
+    const updatedSettings = await userService.updateSettings(req.body);
+    res.json({ message: 'Settings updated successfully', settings: updatedSettings });
+});
 
-    if (!currentWeekContribution) {
-      return res.status(403).json({ message: 'Please make the contribution for the current week before deactivating your account.' });
-    }
-
-    // --- Loophole Fix ---
-    // Deleting the current week's contribution record to prevent reactivation exploit.
-    // The money for this is returned as part of totalContributions.
-    await Contribution.deleteOne({
-      user: userId,
-      createdAt: { $gte: startOfWeek }
-    });
-
-    // Deactivate the user
-    const user = await User.findById(userId);
-
-    // Calculate total return amount AFTER finding the user
-    const totalContributions = user.contributions || 0;
-    const accountBalance = user.balance || 0;
-    const totalReturnAmount = totalContributions + accountBalance;
-
-    // Adjust the main pool fund
-    const poolFund = await PoolFund.findOne();
-    if (poolFund) {
-      poolFund.totalContributions -= totalContributions;
-      await poolFund.save();
-    }
-
-    // Reset user's financial data
-    user.contributions = 0;
-    user.balance = 0;
-    user.isActive = false;
-    await user.save();
-    
-    // Log the deactivation event
-    await ActivityLog.create({ user: userId, activityType: 'deactivated' });
-
-    res.json({ message: 'Your account has been successfully deactivated. You will be logged out.', returnedAmount: totalReturnAmount });
-
-  } catch (error) {
-    console.error('Error during account deactivation:', error);
-    res.status(500).json({ message: 'Server error during account deactivation.' });
-  }
-};
+// @desc    Manually trigger dues check for testing
+// @route   GET /api/users/admin/test-dues
+// @access  Admin
+exports.testDues = asyncHandler(async (req, res) => {
+    await checkWeeklyContributions();
+    res.send('Weekly dues check completed. Check console and database.');
+});

@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
-import api from "../services/api";
 import { getMyLoans, requestLoan, getRepaymentDetails, repayLoan } from '../services/loanService';
+import Pagination from "../components/Pagination";
+
+// Modal component remains the same
 
 function RepayConfirmationModal({ loan, details, onConfirm, onCancel, loading }) {
   if (!loan) return null;
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-40">
       <div className="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full">
         <h2 className="text-xl font-bold mb-4">Confirm Repayment</h2>
         <p className="mb-2">You are about to repay the loan for:</p>
@@ -41,12 +43,14 @@ export default function Loans() {
   const [error, setError] = useState("");
   const [repayModal, setRepayModal] = useState({ isOpen: false, loan: null, details: null });
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
+
   const fetchMyLoans = async () => {
     setLoading(true);
     setError("");
     try {
-           const { data } = await getMyLoans();
-
+      const { data } = await getMyLoans();
       setLoans(data);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to load loan history.");
@@ -68,8 +72,7 @@ export default function Loans() {
     setLoading(true);
     setError("");
     try {
-            const { data } = await requestLoan(parseInt(amount), purpose);
-
+      const { data } = await requestLoan(parseInt(amount), purpose);
       setLoans([data.loan, ...loans]);
       setAmount("");
       setPurpose("");
@@ -79,7 +82,8 @@ export default function Loans() {
       setLoading(false);
     }
   };
-
+  
+  // other handlers remain the same...
   const showRepayConfirmation = async (loan) => {
     setLoading(true);
     setError("");
@@ -98,7 +102,8 @@ export default function Loans() {
     setLoading(true);
     setError("");
     try {
-   await repayLoan(repayModal.loan._id);      setRepayModal({ isOpen: false, loan: null, details: null });
+      await repayLoan(repayModal.loan._id);
+      setRepayModal({ isOpen: false, loan: null, details: null });
       fetchMyLoans();
     } catch (err) {
       setError(err.response?.data?.message || "Failed to repay loan.");
@@ -117,20 +122,29 @@ export default function Loans() {
     }
   };
 
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = loans.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(loans.length / itemsPerPage);
+
+  const handlePageChange = (pageNumber) => {
+    setCurrentPage(pageNumber);
+  };
+
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <h1 className="text-2xl font-bold mb-4">Loan Management</h1>
       {error && <div className="mb-4 text-red-600 font-semibold">{error}</div>}
       <form
         onSubmit={handleRequestLoan}
-        className="bg-white p-4 rounded-lg shadow mb-6 flex gap-4"
+        className="bg-white p-4 rounded-lg shadow mb-6 flex flex-col sm:flex-row gap-4"
       >
         <input
           type="number"
           placeholder="Enter Loan Amount (₹)"
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
-          className="border rounded-lg px-3 py-2"
+          className="border rounded-lg px-3 py-2 w-full sm:w-auto"
           disabled={loading}
           required
         />
@@ -151,55 +165,65 @@ export default function Loans() {
           {loading ? "Requesting..." : "Request Loan"}
         </button>
       </form>
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <table className="w-full">
-          <thead className="bg-gray-200 text-gray-600">
-            <tr>
-              <th className="px-4 py-2 text-left">Date</th>
-              <th className="px-4 py-2 text-left">Amount (₹)</th>
-              <th className="px-4 py-2 text-left">Purpose</th>
-              <th className="px-4 py-2 text-left">Status</th>
-              <th className="px-4 py-2 text-left">Total Repaid (₹)</th>
-              <th className="px-4 py-2 text-left">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loans.map((loan) => (
-              <tr key={loan._id} className="border-t">
-                <td className="px-4 py-2">
-                  {new Date(loan.requestedAt).toLocaleDateString()}
-                </td>
-                <td className="px-4 py-2">{loan.amount}</td>
-                <td className="px-4 py-2">{loan.purpose}</td>
-                <td className={`px-4 py-2 font-medium ${getStatusColor(loan.status)}`}>
-                  {loan.status}
-                </td>
-                 <td className="px-4 py-2 font-semibold">
-                  {loan.status === "repaid" && typeof loan.repaidAmount === 'number' ? `₹${loan.repaidAmount.toFixed(2)}` : '-'}
-                </td>
-                <td className="px-4 py-2">
-                  {loan.status === "approved" && (
-                    <button
-                      onClick={() => showRepayConfirmation(loan)}
-                      className="bg-blue-600 text-white text-xs px-2 py-1 rounded hover:bg-blue-500"
-                      disabled={loading}
-                    >
-                      Repay
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-            {loans.length === 0 && !loading && (
+
+      <div className="bg-white rounded-lg shadow">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-max">
+            <thead className="bg-gray-200 text-gray-600">
               <tr>
-                <td colSpan="6" className="text-center py-4 text-gray-500">
-                  No loans found.
-                </td>
+                <th className="px-4 py-3 text-left text-sm font-semibold">Date</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold">Amount (₹)</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold">Purpose</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold">Status</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold">Total Repaid (₹)</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold">Actions</th>
               </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {currentItems.map((loan) => (
+                <tr key={loan._id} className="border-t">
+                  <td className="px-4 py-2">
+                    {new Date(loan.requestedAt).toLocaleDateString()}
+                  </td>
+                  <td className="px-4 py-2">{loan.amount}</td>
+                  <td className="px-4 py-2">{loan.purpose}</td>
+                  <td className={`px-4 py-2 font-medium ${getStatusColor(loan.status)}`}>
+                    {loan.status}
+                  </td>
+                  <td className="px-4 py-2 font-semibold">
+                    {loan.status === "repaid" && typeof loan.repaidAmount === 'number' ? `₹${loan.repaidAmount.toFixed(2)}` : '-'}
+                  </td>
+                  <td className="px-4 py-2">
+                    {loan.status === "approved" && (
+                      <button
+                        onClick={() => showRepayConfirmation(loan)}
+                        className="bg-blue-600 text-white text-xs px-2 py-1 rounded hover:bg-blue-500"
+                        disabled={loading}
+                      >
+                        Repay
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+              {loans.length === 0 && !loading && (
+                <tr>
+                  <td colSpan="6" className="text-center py-4 text-gray-500">
+                    No loans found.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
+       {totalPages > 1 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
+        />
+      )}
       {repayModal.isOpen && (
         <RepayConfirmationModal 
           loan={repayModal.loan}

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import api from "../services/api";
 import { getContributionStatus, getContributionHistory, addContribution } from '../services/contributionService';
+import Pagination from "../components/Pagination";
 
 export default function Contributions() {
   const [history, setHistory] = useState([]);
@@ -12,6 +13,10 @@ export default function Contributions() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [paymentLoading, setPaymentLoading] = useState(false);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
 
   const fetchPageData = async () => {
     setLoading(true);
@@ -39,8 +44,7 @@ export default function Contributions() {
     setPaymentLoading(true);
     setError("");
     try {
-           await addContribution(status.amountDue);
-
+      await addContribution(status.amountDue);
       fetchPageData(); 
     } catch (err) {
       setError(err.response?.data?.message || "Payment failed.");
@@ -55,6 +59,16 @@ export default function Contributions() {
     return 'text-gray-700';
   };
 
+  // Pagination Logic
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = history.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(history.length / itemsPerPage);
+
+  const handlePageChange = (pageNumber) => {
+    setCurrentPage(pageNumber);
+  };
+
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-4">Make Your Contribution</h1>
@@ -64,9 +78,9 @@ export default function Contributions() {
       {loading ? <p>Loading payment status...</p> : (
         <form
           onSubmit={handlePay}
-          className="bg-white p-4 rounded-lg shadow mb-6 flex gap-4 items-center"
+          className="bg-white p-4 rounded-lg shadow mb-6 flex flex-col sm:flex-row gap-4 items-center"
         >
-          <div className="flex-1">
+          <div className="flex-1 w-full">
             <input
               type="text"
               value={`Amount to Pay: ₹${status.amountDue}`}
@@ -77,7 +91,7 @@ export default function Contributions() {
           </div>
           <button
             type="submit"
-            className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
             disabled={paymentLoading || !status.isContributionDue}
           >
             {paymentLoading ? "Processing..." : "Pay Now"}
@@ -86,8 +100,8 @@ export default function Contributions() {
       )}
 
       <h2 className="text-xl font-bold mb-4 mt-8">Your Transaction History</h2>
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-         <table className="w-full">
+      <div className="bg-white rounded-lg shadow overflow-x-auto">
+         <table className="w-full min-w-max">
           <thead className="bg-gray-200 text-gray-600">
             <tr>
               <th className="px-4 py-2 text-left">Date</th>
@@ -104,7 +118,7 @@ export default function Contributions() {
                 </td>
               </tr>
             ) : (
-              history.map((item) => (
+              currentItems.map((item) => (
                 <tr key={item._id} className="border-t">
                   <td className="px-4 py-2">{new Date(item.date).toLocaleDateString()}</td>
                   <td className="px-4 py-2 font-medium">{item.type}</td>
@@ -118,6 +132,13 @@ export default function Contributions() {
           </tbody>
         </table>
       </div>
+       {totalPages > 1 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
+        />
+      )}
     </div>
   );
 }

@@ -1,11 +1,16 @@
 import { useState, useEffect } from "react";
 import api from "../../services/api";
 import { getAllLoans, approveLoan, rejectLoan } from '../../services/loanService';
+import Pagination from "../../components/Pagination"; // Pagination component import karein
 
 export default function LoanManagement() {
   const [loans, setLoans] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  
+  // Pagination ke liye state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [loansPerPage] = useState(10); // Har page par 10 loan dikhayein
 
   const fetchLoans = async () => {
     setLoading(true);
@@ -35,7 +40,7 @@ export default function LoanManagement() {
     }
   };
 
-  const handleReject = async (id) => { // Updated function
+  const handleReject = async (id) => {
     try {
        await rejectLoan(id);
       fetchLoans();
@@ -60,6 +65,16 @@ export default function LoanManagement() {
     }
   };
 
+  // Pagination Logic
+  const indexOfLastLoan = currentPage * loansPerPage;
+  const indexOfFirstLoan = indexOfLastLoan - loansPerPage;
+  const currentLoans = loans.slice(indexOfFirstLoan, indexOfLastLoan);
+  const totalPages = Math.ceil(loans.length / loansPerPage);
+
+  const handlePageChange = (pageNumber) => {
+    setCurrentPage(pageNumber);
+  };
+
   return (
     <div className="p-6">
       <h1 className="text-3xl font-bold mb-6">Loan Management</h1>
@@ -67,56 +82,71 @@ export default function LoanManagement() {
       {loading && <p>Loading loans...</p>}
       {error && <p className="text-red-500">{error}</p>}
       
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <table className="min-w-full">
-          <thead className="bg-gray-200 text-gray-600">
-            <tr>
-              <th className="px-4 py-2 text-left">Borrower</th>
-              <th className="px-4 py-2 text-left">Amount (₹)</th>
-              <th className="px-4 py-2 text-left">Purpose</th>
-              <th className="px-4 py-2 text-left">Status</th>
-              <th className="px-4 py-2 text-left">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loans.map((loan) => (
-              <tr key={loan._id} className="border-t">
-                <td className="px-4 py-2">{loan.borrower?.name}</td>
-                <td className="px-4 py-2">{loan.amount}</td>
-                <td className="px-4 py-2">{loan.purpose}</td>
-                <td className={`px-4 py-2 font-medium ${getStatusColor(loan.status)}`}>
-                  {loan.status}
-                </td>
-                <td className="px-4 py-2">
-                  {loan.status === "pending" && (
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleApprove(loan._id)}
-                        className="bg-green-600 text-white text-xs px-2 py-1 rounded hover:bg-green-500"
-                      >
-                        Approve
-                      </button>
-                      <button
-                        onClick={() => handleReject(loan._id)}
-                        className="bg-red-600 text-white text-xs px-2 py-1 rounded hover:bg-red-500"
-                      >
-                        Reject
-                      </button>
-                    </div>
-                  )}
-                </td>
-              </tr>
-            ))}
-            {loans.length === 0 && !loading && (
-              <tr>
-                <td colSpan="5" className="text-center py-4 text-gray-500">
-                  No loans found.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      {!loading && !error && loans.length > 0 && (
+        <>
+          <div className="bg-white rounded-lg shadow overflow-x-auto">
+            <table className="min-w-full">
+              <thead className="bg-gray-200 text-gray-600">
+                <tr>
+                  <th className="px-4 py-2 text-left">Borrower</th>
+                  <th className="px-4 py-2 text-left">Amount (₹)</th>
+                  <th className="px-4 py-2 text-left">Purpose</th>
+                  <th className="px-4 py-2 text-left">Status</th>
+                  <th className="px-4 py-2 text-left">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {currentLoans.map((loan) => (
+                  <tr key={loan._id} className="border-t">
+                    <td className="px-4 py-2">{loan.borrower?.name}</td>
+                    <td className="px-4 py-2">{loan.amount}</td>
+                    <td className="px-4 py-2">{loan.purpose}</td>
+                    <td className={`px-4 py-2 font-medium ${getStatusColor(loan.status)}`}>
+                      {loan.status}
+                    </td>
+                    <td className="px-4 py-2">
+                      {loan.status === "pending" && (
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleApprove(loan._id)}
+                            className="bg-green-600 text-white text-xs px-2 py-1 rounded hover:bg-green-500"
+                          >
+                            Approve
+                          </button>
+                          <button
+                            onClick={() => handleReject(loan._id)}
+                            className="bg-red-600 text-white text-xs px-2 py-1 rounded hover:bg-red-500"
+                          >
+                            Reject
+                          </button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+                {loans.length === 0 && !loading && (
+                  <tr>
+                    <td colSpan="5" className="text-center py-4 text-gray-500">
+                      No loans found.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={handlePageChange}
+          />
+        </>
+      )}
+
+      {!loading && !error && loans.length === 0 && (
+        <div className="bg-white rounded-lg shadow p-8 text-center text-gray-500">
+          No loan requests found at the moment.
+        </div>
+      )}
     </div>
   );
 }

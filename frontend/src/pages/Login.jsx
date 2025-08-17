@@ -4,17 +4,17 @@ import { useDispatch, useSelector } from 'react-redux';
 import { setCredentials } from '../store/authSlice';
 import { ArrowLeftIcon } from '@heroicons/react/24/solid';
 import api from "../services/api";
+import toast from 'react-hot-toast'; // 1. toast ko import karein
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  // const [error, setError] = useState(""); // 2. Ab iski zaroorat nahi
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  // Redux store se state access karein
   const { userInfo } = useSelector((state) => state.auth);
 
   useEffect(() => {
@@ -25,30 +25,32 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
     setLoading(true);
+    const toastId = toast.loading('Logging in...'); // 3. Loading toast dikhayein
 
     try {
       const { data } = await api.post('/auth/login', { email, password });
-      dispatch(setCredentials(data)); // Login success par user info store mein bhejein
+      dispatch(setCredentials(data));
+      toast.success('Login successful!', { id: toastId }); // 4. Success toast
       navigate("/dashboard");
     } catch (err) {
       const errorMessage = err.response?.data?.message || "Login failed. Please try again.";
-      setError(errorMessage);
+      toast.error(errorMessage, { id: toastId }); // 5. Error toast
 
       if (err.response?.data?.inactive) {
-        const confirmReactivate = window.confirm("Your account is currently inactive. Do you want to reactivate it?");
-        if (confirmReactivate) {
-          try {
-            const reactivationRes = await api.post('/auth/reactivate', { email });
-            alert(reactivationRes.data.message);
-          } catch (reactivateErr) {
-            setError(reactivateErr.response?.data?.message || "Failed to reactivate account.");
-          }
+        if (window.confirm("Your account is currently inactive. Do you want to reactivate it?")) {
+            const reactivationToastId = toast.loading('Reactivating account...');
+            try {
+                const reactivationRes = await api.post('/auth/reactivate', { email });
+                toast.success(reactivationRes.data.message, { id: reactivationToastId });
+            } catch (reactivateErr) {
+                const reactivateError = reactivateErr.response?.data?.message || "Failed to reactivate account.";
+                toast.error(reactivateError, { id: reactivationToastId });
+            }
         }
       }
     } finally {
-      setLoading(false);
+        setLoading(false);
     }
   };
 
@@ -62,7 +64,7 @@ const Login = () => {
           </Link>
           <h2 className="text-3xl font-bold text-white">Login</h2>
         </div>
-        {error && <p className="text-red-500 mb-4">{error}</p>}
+        {/* Error message p tag ab hata diya gaya hai */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <input
             type="email"

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { logout } from '../store/authSlice';
 import api from "../services/api";
+import toast from 'react-hot-toast';
 
 // This sub-component handles its own local state, so it doesn't need many changes.
 function WithdrawalForm({ currentBalance, onWithdrawal }) {
@@ -15,13 +16,15 @@ function WithdrawalForm({ currentBalance, onWithdrawal }) {
     setLoading(true);
     setError("");
     setSuccess("");
+        const toastId = toast.loading('Processing withdrawal...');
+
     try {
       const { data } = await api.post("/users/account/withdraw", { amount: parseInt(amount) });
-      setSuccess(data.message);
+      toast.success(data.message, { id: toastId });
       setAmount("");
       onWithdrawal(); // Refresh dashboard data
     } catch (err) {
-      setError(err.response?.data?.message || "Withdrawal failed.");
+      toast.error(err.response?.data?.message || "Withdrawal failed.", { id: toastId });
     } finally {
       setLoading(false);
     }
@@ -59,15 +62,15 @@ function AccountActions() {
   const dispatch = useDispatch();
   const [error, setError] = useState("");
   
-  const handleDeactivate = async () => {
-    const isConfirmed = window.confirm("Are you sure you want to deactivate your account? This action cannot be undone.");
-    if (isConfirmed) {
+   const handleDeactivate = async () => {
+    if (window.confirm("Are you sure you want to deactivate your account? This action cannot be undone.")) {
+      const toastId = toast.loading('Deactivating account...');
       try {
         const { data } = await api.patch("/users/account/deactivate");
-        alert(`${data.message} A total of ₹${data.returnedAmount.toFixed(2)} will be returned to you. You will now be logged out.`);
-        dispatch(logout()); // Dispatch the logout action from Redux
+        toast.success(`${data.message} A total of ₹${data.returnedAmount.toFixed(2)} will be returned.`, { id: toastId, duration: 5000 });
+        dispatch(logout());
       } catch (err) {
-        setError(err.response?.data?.message || "Deactivation failed.");
+        toast.error(err.response?.data?.message || "Deactivation failed.", { id: toastId });
       }
     }
   };

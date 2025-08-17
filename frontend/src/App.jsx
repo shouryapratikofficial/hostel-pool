@@ -16,9 +16,12 @@ import TransactionHistory from "./pages/Profit";
 import MainLayout from "./components/MainLayout";
 import Notifications from "./pages/Notifications"; // NEW: Import the new component
 import AdminSettings from "./pages/admin/AdminSettings";
+import { Toaster } from 'react-hot-toast'; // 1. Import Toaster
+
 function App() {
   return (
     <Router>
+
       <AppContent />
     </Router>
   );
@@ -31,6 +34,7 @@ function AppContent() {
 
   return (
     <>
+      <Toaster position="top-center" reverseOrder={false} />
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />

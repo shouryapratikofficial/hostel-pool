@@ -47,14 +47,14 @@ export default function AdminDashboard() {
 
   return (
     <div className="bg-gray-50 p-6">
-      <h1 className="text-3xl font-bold mb-6">Admin Dashboard</h1>
+      <h1 className="text-3xl font-bold mb-4">Admin Dashboard</h1>
       {loading && <p>Loading...</p>}
       {error && <p className="text-red-500">{error}</p>}
 
       {!loading && !error && (
         <>
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-4">
             <StatCard title="Total Available Balance" value={`₹${stats.totalAvailableBalance}`} />
             <StatCard title="Total Balance" value={`₹${stats.totalBalance}`} />
             <StatCard title="Blocked Amount" value={`₹${stats.blockedAmount}`} />
@@ -62,7 +62,7 @@ export default function AdminDashboard() {
           </div>
 
           {/* Chart */}
-          <div className="bg-white rounded-xl shadow p-6 mb-8">
+          <div className="bg-white rounded-xl shadow p-6 mb-4">
             <h2 className="text-xl font-semibold mb-4">Profit Trend</h2>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={profitData}>

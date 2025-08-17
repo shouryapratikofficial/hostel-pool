@@ -65,9 +65,9 @@ const MainLayout = () => {
             <Link to="/dashboard" onClick={handleLinkClick} className="px-4 py-2 rounded-lg hover:bg-gray-800">Dashboard</Link>
             <Link to="/contributions" onClick={handleLinkClick} className="px-4 py-2 rounded-lg hover:bg-gray-800">Contributions</Link>
             <Link to="/loans" onClick={handleLinkClick} className="px-4 py-2 rounded-lg hover:bg-gray-800">Loans</Link>
-            <Link to="/profit" onClick={handleLinkClick} className="px-4 py-2 rounded-lg hover:bg-gray-800">Profit History</Link>
+            <Link to="/profit" onClick={handleLinkClick} className="px-4 py-2 rounded-lg hover:bg-gray-800">Profits</Link>
             {userInfo?.role === 'admin' && (
-              <Link to="/admin" onClick={handleLinkClick} className="px-4 py-2 rounded-lg hover:bg-gray-800">Admin Panel</Link>
+              <Link to="/admin" onClick={handleLinkClick} className="px-4 py-2 rounded-lg hover:bg-gray-800">Admin</Link>
             )}
           </nav>
           <div className="mt-auto p-4 border-t border-gray-800">

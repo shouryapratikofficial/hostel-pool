@@ -4,8 +4,9 @@
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon index.js",
-    "seed:admin": "node adminSeed.js"
+    "dev": "nodemon server.js",
+    "seed:admin": "node adminSeed.js",
+    "start" : "node server.js"
   },
   "keywords": [],
   "author": "",
@@ -26,5 +27,9 @@
   },
   "devDependencies": {
     "nodemon": "^3.1.10"
-  }
+  },
+  "engines": {
+  "node": "18.x"
+}
+
 }

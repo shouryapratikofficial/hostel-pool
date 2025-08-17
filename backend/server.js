@@ -16,8 +16,9 @@ const app = express();
 
 app.use(helmet()); // 2. Use helmet middleware
 app.use(cors({
-  origin: ["http://localhost:5173", "https://your-frontend.vercel.app/api"],
-  credentials: true
+  origin: ["http://localhost:5173", "https://your-frontend.vercel.app"],
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE"]
 }));
 
 app.use(express.json());

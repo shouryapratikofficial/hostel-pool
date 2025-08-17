@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import api from "../../services/api";
-
+import {getAdminSettings , updateAdminSettings} from "../../services/userService";
 export default function AdminSettings() {
     const [settings, setSettings] = useState({
         weeklyContributionAmount: 0,
@@ -16,7 +16,7 @@ export default function AdminSettings() {
         const fetchSettings = async () => {
             setLoading(true);
             try {
-                const { data } = await api.get("/users/admin/settings");
+                const { data } = await getAdminSettings();
                 setSettings(data);
             } catch (err) {
                 setError("Failed to load settings.");
@@ -37,7 +37,7 @@ export default function AdminSettings() {
         setError("");
         setSuccess("");
         try {
-            await api.patch("/users/admin/settings", settings);
+            await updateAdminSettings(settings);
             setSuccess("Settings updated successfully!");
         } catch (err) {
             setError("Failed to update settings.");

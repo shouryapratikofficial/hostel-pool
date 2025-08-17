@@ -4,6 +4,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import { setCredentials } from '../store/authSlice';
 import { ArrowLeftIcon } from '@heroicons/react/24/solid';
 import api from '../services/api';
+import { registerUser } from '../services/authService'; // Naya import
+
 
 const Register = () => {
     const [name, setName] = useState("");
@@ -33,7 +35,8 @@ const Register = () => {
             return;
         }
         try {
-            const { data } = await api.post('/auth/register', { name, email, password });
+                   const data = await registerUser(name, email, password);
+
             dispatch(setCredentials(data));
             navigate('/dashboard');
         } catch (err) {

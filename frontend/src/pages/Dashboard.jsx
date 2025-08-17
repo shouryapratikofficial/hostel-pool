@@ -3,6 +3,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { logout } from '../store/authSlice';
 import api from "../services/api";
 import toast from 'react-hot-toast';
+import { getDashboardData, withdrawBalance, deactivateAccount } from '../services/userService';
 
 // This sub-component handles its own local state, so it doesn't need many changes.
 function WithdrawalForm({ currentBalance, onWithdrawal }) {
@@ -19,7 +20,7 @@ function WithdrawalForm({ currentBalance, onWithdrawal }) {
         const toastId = toast.loading('Processing withdrawal...');
 
     try {
-      const { data } = await api.post("/users/account/withdraw", { amount: parseInt(amount) });
+      const { data } = await withdrawBalance(parseInt(amount));
       toast.success(data.message, { id: toastId });
       setAmount("");
       onWithdrawal(); // Refresh dashboard data
@@ -66,7 +67,7 @@ function AccountActions() {
     if (window.confirm("Are you sure you want to deactivate your account? This action cannot be undone.")) {
       const toastId = toast.loading('Deactivating account...');
       try {
-        const { data } = await api.patch("/users/account/deactivate");
+        const { data } = await deactivateAccount();
         toast.success(`${data.message} A total of ₹${data.returnedAmount.toFixed(2)} will be returned.`, { id: toastId, duration: 5000 });
         dispatch(logout());
       } catch (err) {
@@ -103,7 +104,7 @@ export default function Dashboard() {
     setLoading(true);
     setError("");
     try {
-      const { data } = await api.get("/users/dashboard");
+      const { data } = await getDashboardData();
       setUserDashboard(data);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to fetch dashboard data.");

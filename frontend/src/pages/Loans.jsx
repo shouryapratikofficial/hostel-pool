@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import api from "../services/api";
+import { getMyLoans, requestLoan, getRepaymentDetails, repayLoan } from '../services/loanService';
 
 function RepayConfirmationModal({ loan, details, onConfirm, onCancel, loading }) {
   if (!loan) return null;
@@ -44,7 +45,8 @@ export default function Loans() {
     setLoading(true);
     setError("");
     try {
-      const { data } = await api.get("/loans/myloans"); // FIX: "/api" removed
+           const { data } = await getMyLoans();
+
       setLoans(data);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to load loan history.");
@@ -66,10 +68,8 @@ export default function Loans() {
     setLoading(true);
     setError("");
     try {
-      const { data } = await api.post("/loans/request", { // FIX: "/api" removed
-        amount: parseInt(amount),
-        purpose
-      });
+            const { data } = await requestLoan(parseInt(amount), purpose);
+
       setLoans([data.loan, ...loans]);
       setAmount("");
       setPurpose("");
@@ -84,7 +84,7 @@ export default function Loans() {
     setLoading(true);
     setError("");
     try {
-      const { data } = await api.get(`/loans/${loan._id}/repayment-details`); // FIX: "/api" removed
+      const { data } = await getRepaymentDetails(loan._id);
       setRepayModal({ isOpen: true, loan: loan, details: data });
     } catch (err) {
       setError("Could not fetch repayment details.");
@@ -98,8 +98,7 @@ export default function Loans() {
     setLoading(true);
     setError("");
     try {
-      await api.patch(`/loans/${repayModal.loan._id}/repay`); // FIX: "/api" removed
-      setRepayModal({ isOpen: false, loan: null, details: null });
+   await repayLoan(repayModal.loan._id);      setRepayModal({ isOpen: false, loan: null, details: null });
       fetchMyLoans();
     } catch (err) {
       setError(err.response?.data?.message || "Failed to repay loan.");

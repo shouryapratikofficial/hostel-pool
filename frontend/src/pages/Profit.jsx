@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import api from "../services/api";
-
+import {getTransactionHistory} from "../services/profitService";
 export default function TransactionHistory() {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -10,7 +10,7 @@ export default function TransactionHistory() {
     const fetchHistory = async () => {
       setLoading(true);
       try {
-        const { data } = await api.get("/profit/history"); // FIX: "/api" removed
+        const { data } = await getTransactionHistory();
         setHistory(data);
       } catch (err) {
         setError("Failed to fetch transaction history.");

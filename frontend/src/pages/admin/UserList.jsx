@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import api from "../../services/api";
-
+import { getAllUsers } from "../../services/userService";
 export default function UserList() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -11,7 +11,7 @@ export default function UserList() {
       setLoading(true);
       setError("");
       try {
-        const { data } = await api.get("/users/all-users");
+        const { data } = await getAllUsers();
         if (Array.isArray(data)) {
           setUsers(data);
         } else {

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import {getAdminDashboardStats } from "../../services/userService";
 import {
   LineChart,
   Line,
@@ -31,7 +32,7 @@ export default function AdminDashboard() {
       setLoading(true);
       setError("");
       try {
-        const { data } = await api.get("/users/admin/dashboard");
+        const { data } = await getAdminDashboardStats();
         setStats(data);
         setProfitData(data.profitTrend);
       } catch (err) {

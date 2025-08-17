@@ -5,11 +5,12 @@ import { setCredentials } from '../store/authSlice';
 import { ArrowLeftIcon } from '@heroicons/react/24/solid';
 import api from "../services/api";
 import toast from 'react-hot-toast'; // 1. toast ko import karein
+import { loginUser, reactivateAccount } from '../services/authService'; // Naya import
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  // const [error, setError] = useState(""); // 2. Ab iski zaroorat nahi
+   const [error, setError] = useState(""); // 2. Ab iski zaroorat nahi
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
@@ -29,7 +30,7 @@ const Login = () => {
     const toastId = toast.loading('Logging in...'); // 3. Loading toast dikhayein
 
     try {
-      const { data } = await api.post('/auth/login', { email, password });
+      const data = await loginUser(email, password);       
       dispatch(setCredentials(data));
       toast.success('Login successful!', { id: toastId }); // 4. Success toast
       navigate("/dashboard");
@@ -41,7 +42,7 @@ const Login = () => {
         if (window.confirm("Your account is currently inactive. Do you want to reactivate it?")) {
             const reactivationToastId = toast.loading('Reactivating account...');
             try {
-                const reactivationRes = await api.post('/auth/reactivate', { email });
+                const reactivationRes = await  await reactivateAccount(email);
                 toast.success(reactivationRes.data.message, { id: reactivationToastId });
             } catch (reactivateErr) {
                 const reactivateError = reactivateErr.response?.data?.message || "Failed to reactivate account.";

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import api from "../../services/api";
+import { getAllLoans, approveLoan, rejectLoan } from '../../services/loanService';
 
 export default function LoanManagement() {
   const [loans, setLoans] = useState([]);
@@ -10,7 +11,7 @@ export default function LoanManagement() {
     setLoading(true);
     setError("");
     try {
-      const { data } = await api.get("/loans/all");
+      const { data } = await getAllLoans();
       setLoans(data);
     } catch (err) {
       setError("Failed to fetch loans.");
@@ -26,7 +27,7 @@ export default function LoanManagement() {
 
   const handleApprove = async (id) => {
     try {
-      await api.patch(`/loans/${id}/approve`);
+      await approveLoan(id);
       fetchLoans();
     } catch (err) {
       setError(err.response?.data?.message || "Failed to approve loan.");
@@ -36,7 +37,7 @@ export default function LoanManagement() {
 
   const handleReject = async (id) => { // Updated function
     try {
-      await api.patch(`/loans/${id}/reject`);
+       await rejectLoan(id);
       fetchLoans();
     } catch (err) {
       setError(err.response?.data?.message || "Failed to reject loan.");

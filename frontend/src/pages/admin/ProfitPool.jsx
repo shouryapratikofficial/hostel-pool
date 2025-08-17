@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import api from "../../services/api";
-
+import {getProfitStatus , distributeProfit} from "../../services/profitService";
 export default function ProfitPool() {
   const [profit, setProfit] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -11,7 +11,7 @@ export default function ProfitPool() {
   const fetchProfit = async () => {
     setLoading(true);
     try {
-      const { data } = await api.get("/profit/status");
+      const { data } = await getProfitStatus();
       setProfit(data.totalProfit);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to fetch profit data.");
@@ -29,7 +29,7 @@ export default function ProfitPool() {
     setDistributionLoading(true);
     setDistributionMessage("");
     try {
-      const res = await api.post("/profit/distribute");
+      const res = await distributeProfit();
       setDistributionMessage(res.data.message);
       setProfit(0);
     } catch (err) {

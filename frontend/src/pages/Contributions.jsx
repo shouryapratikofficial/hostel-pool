@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import api from "../services/api";
+import { getContributionStatus, getContributionHistory, addContribution } from '../services/contributionService';
 
 export default function Contributions() {
   const [history, setHistory] = useState([]);
@@ -17,8 +18,8 @@ export default function Contributions() {
     setError("");
     try {
       const [statusRes, historyRes] = await Promise.all([
-        api.get("/contributions/status"), // FIX: "/api" removed
-        api.get("/contributions/history") // FIX: "/api" removed
+        getContributionStatus(),
+        getContributionHistory()
       ]);
       setStatus(statusRes.data);
       setHistory(historyRes.data);
@@ -38,9 +39,8 @@ export default function Contributions() {
     setPaymentLoading(true);
     setError("");
     try {
-      await api.post("/contributions/add", { // FIX: "/api" removed
-        amount: status.amountDue,
-      });
+           await addContribution(status.amountDue);
+
       fetchPageData(); 
     } catch (err) {
       setError(err.response?.data?.message || "Payment failed.");

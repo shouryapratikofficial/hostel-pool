@@ -13,7 +13,7 @@ const seedContributions = async () => {
         console.log("✅ MongoDB connected for seeding.");
 
         // Find a real user to associate the contribution with
-        const user = await User.findOne({ email: 'admin@example.com' }); // Change to a real test user's email
+        const user = await User.findOne({ email: 'gogi@pogi.com' }); // Change to a real test user's email
         if (!user) {
             console.log("❌ Test user not found. Please create one first.");
             return;

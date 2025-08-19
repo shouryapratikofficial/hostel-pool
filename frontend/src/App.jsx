@@ -17,7 +17,7 @@ import MainLayout from "./components/MainLayout";
 import Notifications from "./pages/Notifications"; // NEW: Import the new component
 import AdminSettings from "./pages/admin/AdminSettings";
 import { Toaster } from 'react-hot-toast'; // 1. Import Toaster
-
+import VerifyOtp from "./pages/VerifyOtp";
 function App() {
   return (
     <Router>
@@ -39,7 +39,7 @@ function AppContent() {
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-
+         <Route path="/verify-otp" element={<VerifyOtp />} />
         <Route element={<PrivateRoute />}>
           <Route element={<MainLayout />}>
             <Route path="/dashboard" element={<Dashboard />} />

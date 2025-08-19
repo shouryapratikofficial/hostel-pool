@@ -1,5 +1,5 @@
 const express = require('express');
-const { registerUser, loginUser, reactivateAccount } = require('../controllers/authController');
+const { registerUser, loginUser, reactivateAccount , verifyUserOtp } = require('../controllers/authController');
 const { body } = require('express-validator');
 const rateLimit = require('express-rate-limit'); // 1. Import rate-limit
 
@@ -25,7 +25,16 @@ router.post(
     ],
     registerUser
 );
-
+// New OTP verification route
+router.post(
+    '/verify-otp',
+    authLimiter,
+    [
+        body('email', 'Please include a valid email').isEmail().normalizeEmail(),
+        body('otp', 'OTP is required').isLength({ min: 6, max: 6 }),
+    ],
+    verifyUserOtp
+);
 router.post(
     '/login',
     authLimiter, // Apply limiter

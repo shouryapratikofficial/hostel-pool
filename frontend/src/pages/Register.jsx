@@ -35,10 +35,9 @@ const Register = () => {
             return;
         }
         try {
-                   const data = await registerUser(name, email, password);
-
-            dispatch(setCredentials(data));
-            navigate('/dashboard');
+            await registerUser(name, email, password);
+           
+            navigate('/verify-otp', { state: { email } });
         } catch (err) {
             setError(err.response?.data?.message || "Registration failed");
         } finally {

@@ -15,3 +15,8 @@ export const reactivateAccount = async (email) => {
     return data;
 }
 
+export const verifyOtp = async (email, otp) => {
+    const { data } = await api.post('/auth/verify-otp', { email, otp });
+    return data;
+};
+

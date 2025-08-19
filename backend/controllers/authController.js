@@ -66,3 +66,16 @@ exports.reactivateAccount = asyncHandler(async (req, res) => {
   const result = await authService.reactivate(req.body.email);
   res.json(result);
 });
+
+exports.verifyUserOtp = asyncHandler(async (req, res) => {
+    const { email, otp } = req.body;
+    const user = await authService.verifyOtp(email, otp);
+
+    res.json({
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        token: generateToken(user._id),
+    });
+});

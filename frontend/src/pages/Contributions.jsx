@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import api from "../services/api";
+import toast from 'react-hot-toast';
 import { getContributionStatus, getContributionHistory, addContribution } from '../services/contributionService';
 import Pagination from "../components/Pagination";
 
@@ -11,17 +11,17 @@ export default function Contributions() {
     message: ""
   });
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [paymentLoading, setPaymentLoading] = useState(false);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
 
+  // Data fetch karne ke liye function
   const fetchPageData = async () => {
     setLoading(true);
-    setError("");
     try {
+      // Dono API calls ek saath karo for speed
       const [statusRes, historyRes] = await Promise.all([
         getContributionStatus(),
         getContributionHistory()
@@ -29,30 +29,39 @@ export default function Contributions() {
       setStatus(statusRes.data);
       setHistory(historyRes.data);
     } catch (err) {
-      setError("Failed to load contribution data.");
+      const errorMessage = err.response?.data?.message || "Failed to load contribution data.";
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
+  // Component load hone par data fetch karo
   useEffect(() => {
     fetchPageData();
   }, []);
 
+  // Payment handle karne ke liye function
   const handlePay = async (e) => {
     e.preventDefault();
     setPaymentLoading(true);
-    setError("");
+    const toastId = toast.loading('Processing payment...');
+
     try {
-      await addContribution(status.amountDue);
+      // Backend ko wohi amount bhejo jo usne humein bataya tha
+      const result = await addContribution(status.amountDue);
+      toast.success(result.data.message, { id: toastId });
+      // Payment ke baad page ka data refresh karo
       fetchPageData(); 
     } catch (err) {
-      setError(err.response?.data?.message || "Payment failed.");
+      const errorMessage = err.response?.data?.message || "Payment failed.";
+      toast.error(errorMessage, { id: toastId });
     } finally {
       setPaymentLoading(false);
     }
   };
   
+  // Status ke hisaab se text ka color set karne ke liye
   const getStatusColor = (status) => {
     if (status === 'Paid' || status === 'paid') return 'text-green-600';
     if (status === 'pending') return 'text-red-600';
@@ -70,10 +79,8 @@ export default function Contributions() {
   };
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <h1 className="text-2xl font-bold mb-4">Make Your Contribution</h1>
-
-       {error && <div className="mb-4 text-red-600 font-semibold">{error}</div>}
 
       {loading ? <p>Loading payment status...</p> : (
         <form
@@ -81,11 +88,13 @@ export default function Contributions() {
           className="bg-white p-4 rounded-lg shadow mb-6 flex flex-col sm:flex-row gap-4 items-center"
         >
           <div className="flex-1 w-full">
+            {/* --- IMPORTANT CHANGE --- */}
+            {/* Input field ab non-editable (disabled) hai */}
             <input
               type="text"
               value={`Amount to Pay: ₹${status.amountDue}`}
               className="border rounded-lg px-3 py-2 w-full bg-gray-100 text-gray-700 font-semibold"
-              disabled
+              disabled 
             />
             <p className="text-xs text-gray-500 mt-1 ml-1">{status.message}</p>
           </div>
@@ -94,7 +103,9 @@ export default function Contributions() {
             className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
             disabled={paymentLoading || !status.isContributionDue}
           >
-            {paymentLoading ? "Processing..." : "Pay Now"}
+            {/* --- IMPORTANT CHANGE --- */}
+            {/* Button ka text ab dynamic hai */}
+            {paymentLoading ? "Processing..." : `Pay ₹${status.amountDue}`}
           </button>
         </form>
       )}

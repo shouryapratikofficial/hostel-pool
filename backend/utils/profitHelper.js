@@ -46,7 +46,7 @@ const distributeProfitForMonth = async (dateForCalculation) => {
         // User ne pichle mahine kitne contribution kiye, woh gino
         const contributionsCount = await Contribution.countDocuments({
             user: user._id,
-            createdAt: { $gte: startOfPreviousMonth, $lte: endOfPreviousMonth },
+            date: { $gte: startOfPreviousMonth, $lte: endOfPreviousMonth },
         });
 
         // Deactivation check waisa hi rahega

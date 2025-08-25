@@ -65,6 +65,26 @@ const getContributionStatus = async (userId) => {
 };
 
 /**
+ * Helper function to convert a week identifier (e.g., "2025-W33") back to a Date object.
+ * This will give us the date of the Monday of that week.
+ * @param {string} weekIdentifier - The identifier for the week.
+ * @returns {Date} The date corresponding to the start of that week.
+ */
+const getDateFromWeekIdentifier = (weekIdentifier) => {
+    const [year, week] = weekIdentifier.split('-W').map(Number);
+    const simple = new Date(year, 0, 1 + (week - 1) * 7);
+    const dayOfWeek = simple.getDay();
+    const isoWeekStart = simple;
+    if (dayOfWeek <= 4) {
+        isoWeekStart.setDate(simple.getDate() - simple.getDay() + 1);
+    } else {
+        isoWeekStart.setDate(simple.getDate() + 8 - simple.getDay());
+    }
+    return isoWeekStart;
+};
+
+
+/**
  * Processes a user's contribution payment using a strict "All or Nothing" rule.
  * The submitted amount must exactly match the total required amount.
  * It correctly routes missed contributions and fines to the PoolFund and Profit collections.
@@ -110,13 +130,24 @@ const addContribution = async (userId, submittedAmount) => {
         await due.save();
         
         const missedContribution = due.amount - lateFineAmount;
+        const accurateContributionDate = getDateFromWeekIdentifier(due.weekIdentifier);
+
+         await Contribution.create({
+            user: userId,
+            amount: missedContribution,
+            date: accurateContributionDate,   // Back-dating the contribution
+           
+        });
+        
+        // User ka lifetime contribution update karo
+        user.contributions += missedContribution;
         poolFund.totalContributions += missedContribution;
         profit.totalProfit += lateFineAmount;
     }
     
     // Process the current week's contribution if it was due
     if (!weeklyContribution) {
-        await Contribution.create({ user: userId, amount: weeklyContributionAmount });
+        await Contribution.create({ user: userId, amount: weeklyContributionAmount  });
         user.contributions += weeklyContributionAmount;
         poolFund.totalContributions += weeklyContributionAmount;
     }
@@ -136,35 +167,52 @@ const addContribution = async (userId, submittedAmount) => {
 };
 
 /**
- * Fetches a combined history of contributions and dues for a user.
+ * Fetches a complete and transparent history of all transactions for a user.
+ * It shows all contributions and all dues (both pending and paid).
  * @param {string} userId - The ID of the user.
- * @returns {Promise<Array<object>>} A sorted array of transactions.
+ * @returns {Promise<Array<object>>} A sorted array of all transactions.
  */
 const getCombinedHistory = async (userId) => {
+    // 1. Saare contributions uthao
     const contributions = await Contribution.find({ user: userId }).lean();
-    const dues = await Dues.find({ user: userId }).lean();
 
-    const timeline = contributions.map(c => ({
-        _id: c._id,
-        type: 'Contribution',
-        amount: c.amount,
-        status: 'Paid',
-        date: c.createdAt
-    })).concat(dues.map(d => ({
+    // 2. Saare dues uthao (chahe pending ho ya paid)
+    const allDues = await Dues.find({ user: userId }).lean();
+
+    // Contributions ko display ke liye format karo
+    const contributionsTimeline = contributions.map(c => {
+        // Pata lagao ki yeh ek regular contribution hai ya back-dated (due se bana hua)
+        const contributionDate = new Date(c.date);
+        const createdDate = new Date(c.createdAt);
+        // Agar dono dates mein 1 din se zyada ka fark hai, toh yeh late payment tha
+        const isLatePayment = (createdDate.getTime() - contributionDate.getTime()) > (24 * 60 * 60 * 1000);
+
+        return {
+            _id: c._id,
+            // Type ko aur descriptive banao
+            type: isLatePayment ? 'Contribution (Paid Late)' : 'Contribution (On Time)',
+            amount: c.amount,
+            status: 'Paid',
+            date: c.date 
+        };
+    });
+
+    // Dues ko display ke liye format karo
+    const duesTimeline = allDues.map(d => ({
         _id: d._id,
-        type: 'Due (Missed Payment)',
+        type: 'Fine Incurred', // Isse saaf pata chalega ki yeh fine laga tha
         amount: d.amount,
         status: d.status,
         date: d.createdAt
-    })));
+    }));
+
+    // Dono lists ko jodo aur date ke hisaab se sort kar do
+    const timeline = [...contributionsTimeline, ...duesTimeline];
 
     return timeline.sort((a, b) => new Date(b.date) - new Date(a.date));
 };
 
-/**
- * Fetches all contributions for all users (Admin only).
- * @returns {Promise<Array<object>>} A list of all contributions.
- */
+
 const getAllContributions = async () => {
     return await Contribution.find().populate('user', 'name email').sort({ date: -1 });
 };

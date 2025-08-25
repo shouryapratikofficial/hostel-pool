@@ -88,8 +88,6 @@ export default function Contributions() {
           className="bg-white p-4 rounded-lg shadow mb-6 flex flex-col sm:flex-row gap-4 items-center"
         >
           <div className="flex-1 w-full">
-            {/* --- IMPORTANT CHANGE --- */}
-            {/* Input field ab non-editable (disabled) hai */}
             <input
               type="text"
               value={`Amount to Pay: ₹${status.amountDue}`}
@@ -103,8 +101,6 @@ export default function Contributions() {
             className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
             disabled={paymentLoading || !status.isContributionDue}
           >
-            {/* --- IMPORTANT CHANGE --- */}
-            {/* Button ka text ab dynamic hai */}
             {paymentLoading ? "Processing..." : `Pay ₹${status.amountDue}`}
           </button>
         </form>
@@ -116,7 +112,7 @@ export default function Contributions() {
           <thead className="bg-gray-200 text-gray-600">
             <tr>
               <th className="px-4 py-2 text-left">Date</th>
-              <th className="px-4 py-2 text-left">Type</th>
+              <th className="px-4 py-2 text-left">Description</th>
               <th className="px-4 py-2 text-left">Amount (₹)</th>
               <th className="px-4 py-2 text-left">Status</th>
             </tr>
